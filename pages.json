@@ -1,0 +1,98 @@
+{
+  "pages": [
+    {
+      "path": "pages/task/hall",
+      "style": {
+        "navigationBarTitleText": "任务大厅",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/order/index",
+      "style": {
+        "navigationBarTitleText": "我的订单",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/message/index",
+      "style": {
+        "navigationBarTitleText": "消息中心",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/profile/index",
+      "style": {
+        "navigationBarTitleText": "个人中心",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/auth/index",
+      "style": {
+        "navigationBarTitleText": "登录/注册"
+      }
+    },
+    {
+      "path": "pages/task/publish",
+      "style": {
+        "navigationBarTitleText": "发布任务"
+      }
+    },
+    {
+      "path": "pages/task/detail",
+      "style": {
+        "navigationBarTitleText": "任务详情"
+      }
+    },
+    {
+      "path": "pages/order/published",
+      "style": {
+        "navigationBarTitleText": "我的发布",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/order/taken",
+      "style": {
+        "navigationBarTitleText": "我的接单",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/review/index",
+      "style": {
+        "navigationBarTitleText": "评价订单"
+      }
+    },
+    {
+      "path": "pages/review/list",
+      "style": {
+        "navigationBarTitleText": "我的评价",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/earnings/index",
+      "style": {
+        "navigationBarTitleText": "收益中心",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "首页"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "校园跑腿",
+    "navigationBarBackgroundColor": "#ffffff",
+    "backgroundColor": "#f6f7fb",
+    "backgroundColorTop": "#f6f7fb",
+    "backgroundColorBottom": "#f6f7fb"
+  }
+}

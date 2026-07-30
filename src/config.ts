@@ -1,0 +1,32 @@
+export const API_HOST = import.meta.env.VITE_API_HOST || 'http://localhost:3003'
+export const API_BASE_URL = `${API_HOST}/api`
+export const SOCKET_BASE_URL = `${API_HOST.replace('http', 'ws')}/socket.io`
+
+export const STORAGE_KEYS = {
+  token: 'ce_token',
+  role: 'ce_role',
+  profile: 'ce_user_profile',
+  displayName: 'ce_display_name',
+  userId: 'ce_user_id',
+  avatar: 'ce_avatar',
+  runnerAuth: 'ce_runner_auth_state',
+} as const
+
+export const ITEM_TYPES = ['快递', '餐饮', '文件', '药品', '数码', '其他'] as const
+
+export const REVIEW_TAGS = ['准时送达', '服务热情', '沟通顺畅', '包装完好', '值得推荐'] as const
+
+export const ORDER_STATUS_MAP: Record<string, string> = {
+  PENDING: '待接单',
+  ACCEPTED: '已接单',
+  ASSIGNED: '已分配',
+  PICKUP: '待取件',
+  PICKED_UP: '已取件',
+  DELIVERING: '配送中',
+  COMPLETED: '已完成',
+  DONE: '已完成',
+  FINISHED: '已完成',
+  CANCELLED: '已取消',
+  CANCELED: '已取消',
+  REJECTED: '已拒绝',
+}
