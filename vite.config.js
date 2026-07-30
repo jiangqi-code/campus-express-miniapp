@@ -28,6 +28,15 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [uni()],
+    css: {
+      preprocessorOptions: {
+        scss: {
+          // uni-app 5.05 still invokes Sass through the legacy JS API.
+          // Source styles already use the module system; silence only this upstream warning.
+          silenceDeprecations: ['legacy-js-api'],
+        },
+      },
+    },
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url))

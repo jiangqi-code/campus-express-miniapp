@@ -3,18 +3,18 @@
     <view class="card search-card">
       <view class="search-row">
         <view class="input search-input">
-          <text class="search-icon">🔍</text>
+          <image class="ui-icon search-icon" src="/static/task-hall-icons/search.svg" mode="aspectFit" />
           <input
             v-model="keyword"
             type="text"
             placeholder="搜索地址、备注..."
             confirm-type="search"
-            @confirm="fetchTasks(1)"
+            @confirm="applyKeywordNow"
           />
           <text v-if="keyword" class="clear-btn" @tap="clearKeyword">×</text>
         </view>
         <view class="locate-btn" @tap="refreshLocation" :class="{ 'locate-loading': locating }">
-          <text class="locate-icon">📍</text>
+          <image class="ui-icon locate-icon" src="/static/task-hall-icons/location.svg" mode="aspectFit" />
         </view>
       </view>
 
@@ -31,6 +31,27 @@
           </view>
         </view>
       </scroll-view>
+
+      <view class="filter-groups">
+        <view class="filter-group">
+          <text class="filter-title">时效</text>
+          <view class="filter-options">
+            <view v-for="option in urgencyOptions" :key="option.value" class="filter-chip" :class="{ active: urgencyFilter === option.value }" @tap="selectFilter('urgency', option.value)">{{ option.label }}</view>
+          </view>
+        </view>
+        <view class="filter-group">
+          <text class="filter-title">价格</text>
+          <view class="filter-options">
+            <view v-for="option in priceOptions" :key="option.value" class="filter-chip" :class="{ active: priceFilter === option.value }" @tap="selectFilter('price', option.value)">{{ option.label }}</view>
+          </view>
+        </view>
+        <view class="filter-group">
+          <text class="filter-title">距离</text>
+          <view class="filter-options">
+            <view v-for="option in distanceOptions" :key="option.value" class="filter-chip" :class="{ active: distanceFilter === option.value }" @tap="selectFilter('distance', option.value)">{{ option.label }}</view>
+          </view>
+        </view>
+      </view>
 
       <view class="sort-row">
         <view
@@ -49,7 +70,7 @@
     </view>
 
     <view v-if="errorMsg" class="card error-card">
-      <view class="error-icon">⚠️</view>
+      <image class="error-icon" src="/static/task-hall-icons/warning.svg" mode="aspectFit" />
       <view class="error-content">
         <text class="error-title">加载失败</text>
         <text class="error-msg">{{ errorMsg }}</text>
@@ -67,19 +88,16 @@
       </view>
     </view>
 
-    <scroll-view
-      v-else-if="!errorMsg"
-      scroll-y
-      class="task-list"
-      @scrolltolower="handleScrollToLower"
-      refresher-enabled
-      :refresher-triggered="refreshing"
-      @refresherrefresh="onPullDownRefresh"
-    >
+    <view v-else-if="!errorMsg" class="task-list">
       <view v-if="processedTasks.length === 0" class="card empty-card">
         <view class="empty-box">
-          <text class="empty-icon">📦</text>
-          <text class="empty-text">{{ loading ? '加载中...' : '暂无任务，稍后再来看看吧' }}</text>
+          <image class="empty-illustration" src="/static/task-hall-icons/empty.svg" mode="aspectFit" />
+          <text class="empty-title">{{ loading ? '正在寻找任务' : '暂时没有匹配的任务' }}</text>
+          <text class="empty-text">调整筛选条件，或发布一个新的跑腿需求</text>
+          <view class="empty-actions">
+            <button class="btn-secondary empty-action" @tap="resetHallFilters">重置筛选</button>
+            <button class="btn-primary empty-action" @tap="goPublish">发布任务</button>
+          </view>
         </view>
       </view>
 
@@ -92,7 +110,8 @@
               :class="getCountdownBadgeClass(task)"
               v-if="getRemainingSeconds(task) > 0"
             >
-              ⏱ {{ formatCountdown(getRemainingSeconds(task)) }}
+              <image class="badge-icon" src="/static/task-hall-icons/clock.svg" mode="aspectFit" />
+              {{ formatCountdown(getRemainingSeconds(task)) }}
             </view>
             <view class="badge badge-danger" v-else>已超时</view>
           </view>
@@ -125,22 +144,23 @@
         <view class="task-meta row-between">
           <view class="row gap-16">
             <view class="meta-item">
-              <text class="meta-icon">📏</text>
+              <image class="meta-icon" src="/static/task-hall-icons/distance.svg" mode="aspectFit" />
               <text class="meta-text">{{ formatDistance(task.distance) }}</text>
             </view>
             <view class="meta-item">
-              <text class="meta-icon">🚴</text>
+              <image class="meta-icon" src="/static/task-hall-icons/bicycle.svg" mode="aspectFit" />
               <text class="meta-text">约{{ estimateETA(task.distance) }}</text>
             </view>
             <view class="meta-item">
-              <text class="meta-icon">🕐</text>
+              <image class="meta-icon" src="/static/task-hall-icons/clock.svg" mode="aspectFit" />
               <text class="meta-text">{{ formatRelativeTime(task.created_at) }}</text>
             </view>
           </view>
         </view>
 
         <view v-if="task.remark" class="remark-section">
-          <text class="remark-text">📝 {{ task.remark }}</text>
+          <image class="remark-icon" src="/static/task-hall-icons/note.svg" mode="aspectFit" />
+          <text class="remark-text">{{ task.remark }}</text>
         </view>
 
         <view v-if="task.images && task.images.length > 0" class="thumb-list">
@@ -179,28 +199,14 @@
         </view>
       </view>
 
-      <view v-if="total > 0" class="pagination-section">
-        <view class="row-between pagination-row">
-          <button
-            class="btn-secondary page-btn"
-            :disabled="page <= 1 || loading"
-            @tap="fetchTasks(page - 1)"
-          >
-            上一页
-          </button>
-          <text class="page-info">第 {{ page }} / {{ totalPages }} 页，共 {{ total }} 条</text>
-          <button
-            class="btn-secondary page-btn"
-            :disabled="page >= totalPages || loading"
-            @tap="fetchTasks(page + 1)"
-          >
-            下一页
-          </button>
-        </view>
+      <view v-if="processedTasks.length > 0" class="load-more-state">
+        <text v-if="loading">正在加载更多…</text>
+        <text v-else-if="hasMore">上拉加载更多</text>
+        <text v-else>已加载全部 {{ processedTasks.length }} 条任务</text>
       </view>
 
       <view class="list-bottom-space"></view>
-    </scroll-view>
+    </view>
 
     <view class="fab-wrapper" @tap="goPublish">
       <view class="fab-button">
@@ -214,8 +220,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onBeforeUnmount, ref } from 'vue'
-import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue'
+import { onLoad, onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
 import { useAuthStore } from '@/stores/auth'
 import { useMessageStore } from '@/stores/message'
 import AppTabBar from '@/components/AppTabBar.vue'
@@ -258,6 +264,10 @@ const keyword = ref('')
 const itemType = ref('全部')
 const sortType = ref<'latest' | 'reward' | 'distance'>('distance')
 const sortOrder = ref<'asc' | 'desc'>('asc')
+const urgencyFilter = ref<'all' | 'urgent' | 'normal'>('all')
+const priceFilter = ref<'all' | 'under10' | '10to20' | 'over20'>('all')
+const distanceFilter = ref<'all' | 'under1' | '1to3' | 'over3'>('all')
+let searchTimer: ReturnType<typeof setTimeout> | undefined
 
 const currentLocation = ref<{ latitude: number; longitude: number } | null>(null)
 const pendingAcceptMinutes = ref(30)
@@ -278,7 +288,26 @@ const sortOptions = [
   { label: '距离', value: 'distance' as const },
 ]
 
+const urgencyOptions = [
+  { label: '全部', value: 'all' as const },
+  { label: '10分钟内', value: 'urgent' as const },
+  { label: '较宽松', value: 'normal' as const },
+]
+const priceOptions = [
+  { label: '全部', value: 'all' as const },
+  { label: '¥10内', value: 'under10' as const },
+  { label: '¥10-20', value: '10to20' as const },
+  { label: '¥20+', value: 'over20' as const },
+]
+const distanceOptions = [
+  { label: '全部', value: 'all' as const },
+  { label: '1km内', value: 'under1' as const },
+  { label: '1-3km', value: '1to3' as const },
+  { label: '3km+', value: 'over3' as const },
+]
+
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
+const hasMore = computed(() => page.value < totalPages.value)
 
 const processedTasks = computed<TaskWithComputed[]>(() => {
   let list = tasks.value
@@ -324,6 +353,21 @@ const processedTasks = computed<TaskWithComputed[]>(() => {
       return item
     })
   }
+
+  list = list.filter((item) => {
+    const remaining = Number(item._remainingSeconds ?? 0)
+    const price = Number(item.fee_total ?? 0) + Number(item.tip ?? 0)
+    const distanceKm = Number(item.distance ?? 0) / 1000
+    if (urgencyFilter.value === 'urgent' && remaining > 600) return false
+    if (urgencyFilter.value === 'normal' && remaining <= 600) return false
+    if (priceFilter.value === 'under10' && price >= 10) return false
+    if (priceFilter.value === '10to20' && (price < 10 || price > 20)) return false
+    if (priceFilter.value === 'over20' && price < 20) return false
+    if (distanceFilter.value === 'under1' && distanceKm >= 1) return false
+    if (distanceFilter.value === '1to3' && (distanceKm < 1 || distanceKm > 3)) return false
+    if (distanceFilter.value === 'over3' && distanceKm < 3) return false
+    return true
+  })
 
   if (sortType.value === 'latest') {
     list.sort((a, b) => {
@@ -421,7 +465,12 @@ const fetchTasks = async (targetPage = 1) => {
     const list = Array.isArray(data?.list) ? data.list : (Array.isArray(data) ? data : [])
     const totalNum = Number(data?.total ?? data?.count ?? list.length)
 
-    tasks.value = list as TaskItem[]
+    if (targetPage === 1) {
+      tasks.value = list as TaskItem[]
+    } else {
+      const merged = [...tasks.value, ...(list as TaskItem[])]
+      tasks.value = Array.from(new Map(merged.map((item) => [String(item.id), item])).values())
+    }
     total.value = totalNum
     page.value = targetPage
 
@@ -461,7 +510,7 @@ const startCountdownTimer = () => {
     remainingSecondsMap.value = newMap
 
     if (hasExpired) {
-      fetchTasks(page.value)
+      fetchTasks(1)
     }
   }, 1000)
 }
@@ -521,7 +570,7 @@ const grabTask = async (task: TaskWithComputed) => {
     await http.post(`/order/accept/${encodeURIComponent(task.id)}`)
     uni.showToast({ title: '抢单成功！', icon: 'success' })
     setTimeout(() => {
-      fetchTasks(page.value)
+      fetchTasks(1)
     }, 800)
   } catch (err: any) {
     uni.showToast({
@@ -557,10 +606,31 @@ const clearKeyword = () => {
   fetchTasks(1)
 }
 
-const handleScrollToLower = () => {
-  if (page.value < totalPages.value && !loading.value) {
-    fetchTasks(page.value + 1)
-  }
+const applyKeywordNow = () => {
+  if (searchTimer) clearTimeout(searchTimer)
+  fetchTasks(1)
+}
+
+watch(keyword, () => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => fetchTasks(1), 500)
+})
+
+const selectFilter = (type: 'urgency' | 'price' | 'distance', value: string) => {
+  if (type === 'urgency') urgencyFilter.value = value as typeof urgencyFilter.value
+  if (type === 'price') priceFilter.value = value as typeof priceFilter.value
+  if (type === 'distance') distanceFilter.value = value as typeof distanceFilter.value
+}
+
+const resetHallFilters = () => {
+  keyword.value = ''
+  itemType.value = '全部'
+  urgencyFilter.value = 'all'
+  priceFilter.value = 'all'
+  distanceFilter.value = 'all'
+  sortType.value = 'distance'
+  sortOrder.value = 'asc'
+  fetchTasks(1)
 }
 
 const handlePullDownRefresh = async () => {
@@ -570,10 +640,15 @@ const handlePullDownRefresh = async () => {
     fetchTasks(1),
   ])
   refreshing.value = false
+  uni.stopPullDownRefresh()
 }
 
 onPullDownRefresh(() => {
   handlePullDownRefresh()
+})
+
+onReachBottom(() => {
+  if (hasMore.value && !loading.value) fetchTasks(page.value + 1)
 })
 
 onLoad(() => {
@@ -593,6 +668,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   stopCountdownTimer()
+  if (searchTimer) clearTimeout(searchTimer)
 })
 </script>
 
@@ -619,7 +695,8 @@ onBeforeUnmount(() => {
   padding: 20rpx 24rpx;
 
   .search-icon {
-    font-size: 28rpx;
+    width: 30rpx;
+    height: 30rpx;
     flex-shrink: 0;
   }
 
@@ -662,9 +739,31 @@ onBeforeUnmount(() => {
   }
 
   .locate-icon {
-    font-size: 36rpx;
+    width: 38rpx;
+    height: 38rpx;
   }
 }
+
+.filter-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+  margin-bottom: 20rpx;
+}
+
+.filter-group { display: flex; align-items: center; gap: 16rpx; }
+.filter-title { width: 64rpx; flex-shrink: 0; color: #86909c; font-size: 22rpx; }
+.filter-options { display: flex; min-width: 0; flex: 1; gap: 8rpx; overflow-x: auto; }
+.filter-chip {
+  flex-shrink: 0;
+  padding: 10rpx 18rpx;
+  border: 2rpx solid transparent;
+  border-radius: 999rpx;
+  background: #f5f6f7;
+  color: #4e5969;
+  font-size: 22rpx;
+}
+.filter-chip.active { border-color: #bed3ff; background: #eef3ff; color: #165dff; font-weight: 600; }
 
 .type-scroll {
   white-space: nowrap;
@@ -736,7 +835,8 @@ onBeforeUnmount(() => {
   border: 2rpx solid #fecaca;
 
   .error-icon {
-    font-size: 48rpx;
+    width: 52rpx;
+    height: 52rpx;
   }
 
   .error-content {
@@ -817,26 +917,26 @@ onBeforeUnmount(() => {
 }
 
 .task-list {
-  height: calc(100vh - 420rpx);
+  min-height: 40vh;
 }
 
 .empty-card {
   margin-bottom: 24rpx;
 }
 
-.empty-icon {
-  font-size: 80rpx;
-  display: block;
-  margin-bottom: 20rpx;
-}
+.empty-illustration { width: 320rpx; height: 240rpx; }
+.empty-title { color: #1d2129; font-size: 30rpx; font-weight: 700; }
 
 .empty-text {
-  font-size: 28rpx;
-  color: #6b7280;
+  font-size: 24rpx;
+  color: #86909c;
 }
+.empty-actions { display: flex; gap: 16rpx; margin-top: 16rpx; }
+.empty-action { width: 200rpx; height: 72rpx; font-size: 24rpx; }
 
 .task-card {
   margin-bottom: 24rpx;
+  border-color: #eef0f3;
 }
 
 .task-header {
@@ -844,10 +944,12 @@ onBeforeUnmount(() => {
 }
 
 .task-price {
-  font-size: 36rpx;
+  font-size: 40rpx;
   font-weight: 700;
   color: #dc2626;
 }
+
+.badge-icon { width: 22rpx; height: 22rpx; margin-right: 4rpx; }
 
 .tip-row {
   display: flex;
@@ -964,7 +1066,8 @@ onBeforeUnmount(() => {
   gap: 6rpx;
 
   .meta-icon {
-    font-size: 24rpx;
+    width: 24rpx;
+    height: 24rpx;
   }
 
   .meta-text {
@@ -974,12 +1077,17 @@ onBeforeUnmount(() => {
 }
 
 .remark-section {
+  display: flex;
+  align-items: flex-start;
+  gap: 10rpx;
   margin-bottom: 16rpx;
   padding: 16rpx 20rpx;
   background: #f8fafc;
   border-radius: 12rpx;
   border-left: 6rpx solid #3b82f6;
 }
+
+.remark-icon { width: 26rpx; height: 26rpx; margin-top: 5rpx; flex-shrink: 0; }
 
 .remark-text {
   font-size: 24rpx;
@@ -1010,28 +1118,7 @@ onBeforeUnmount(() => {
   font-size: 28rpx;
 }
 
-.pagination-section {
-  padding: 24rpx 0;
-}
-
-.pagination-row {
-  gap: 16rpx;
-}
-
-.page-btn {
-  flex: 1;
-  max-width: 200rpx;
-  height: 72rpx;
-  border-radius: 16rpx;
-  font-size: 26rpx;
-}
-
-.page-info {
-  flex: 1;
-  text-align: center;
-  font-size: 24rpx;
-  color: #6b7280;
-}
+.load-more-state { padding: 28rpx 0; color: #86909c; font-size: 24rpx; text-align: center; }
 
 .list-bottom-space {
   height: 40rpx;

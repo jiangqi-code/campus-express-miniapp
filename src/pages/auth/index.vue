@@ -1,69 +1,25 @@
 <script setup lang="ts">
-import { computed, nextTick, onErrorCaptured, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { http } from '@/utils/request'
+import { scrollToFirstError } from '@/utils/experience'
 
 const authStore = useAuthStore()
 const currentTab = ref<'login' | 'register'>('login')
 const loading = ref(false)
+const codeSending = ref(false)
+const countdown = ref(0)
+const showLoginPassword = ref(false)
+const showRegisterPassword = ref(false)
+const verifiedPhone = ref('')
+let countdownTimer: ReturnType<typeof setInterval> | undefined
 
-// #region debug-point A:auth-page-setup
-const __dbg = (hypothesisId: string, msg: string, data: Record<string, unknown> = {}) =>
-  fetch('http://127.0.0.1:7777/event', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      sessionId: 'auth-page-blank',
-      runId: 'pre-fix',
-      hypothesisId,
-      location: 'src/pages/auth/index.vue',
-      msg: `[DEBUG] ${msg}`,
-      data,
-      ts: Date.now(),
-    }),
-  }).catch(() => undefined)
+const PHONE_RE = /^1[3-9]\d{9}$/
+const STUDENT_ID_RE = /^[A-Za-z0-9]{6,20}$/
+const PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*\d).{8,32}$/
 
-__dbg('A', 'auth page setup entered', {
-  href: typeof location !== 'undefined' ? location.href : '',
-})
-if (typeof window !== 'undefined') {
-  window.__AUTH_DEBUG_STAGE = 'auth-setup'
-}
+const errors = reactive({ account: '', loginPassword: '', student_id: '', phone: '', nickname: '', password: '', code: '' })
 
-onErrorCaptured((error, _instance, info) => {
-  __dbg('A', 'vue error captured in auth page', {
-    info,
-    error: String((error as Error)?.stack || (error as Error)?.message || error),
-  })
-  return false
-})
-
-onMounted(() => {
-  if (typeof window !== 'undefined') {
-    window.__AUTH_DEBUG_STAGE = 'auth-mounted'
-  }
-  const pageBody = typeof document !== 'undefined' ? document.querySelector('uni-page-body') : null
-  const appRoot = typeof document !== 'undefined' ? document.querySelector('#app') : null
-
-  __dbg('B', 'auth page mounted', {
-    path: typeof location !== 'undefined' ? location.hash : '',
-    pageBodyExists: Boolean(pageBody),
-    appChildCount: appRoot?.childNodes?.length ?? 0,
-    pageBodyHeight: pageBody instanceof HTMLElement ? pageBody.getBoundingClientRect().height : -1,
-    pageBodyText: pageBody?.textContent?.trim()?.slice(0, 80) ?? '',
-  })
-
-  nextTick(() => {
-    if (typeof window !== 'undefined') {
-      window.__AUTH_DEBUG_STAGE = 'auth-next-tick'
-    }
-    const pageBodyAfterTick = typeof document !== 'undefined' ? document.querySelector('uni-page-body') : null
-    __dbg('B', 'auth page nextTick', {
-      pageBodyHtml: pageBodyAfterTick?.innerHTML?.slice(0, 200) ?? '',
-      documentTitle: typeof document !== 'undefined' ? document.title : '',
-    })
-  })
-})
-// #endregion
 
 const loginForm = reactive({
   account: '',
@@ -75,6 +31,7 @@ const registerForm = reactive({
   phone: '',
   password: '',
   nickname: '',
+  code: '',
 })
 
 const titleText = computed(() => (currentTab.value === 'login' ? '欢迎回来' : '创建校园跑腿账号'))
@@ -83,11 +40,66 @@ function goHomeByRole() {
   uni.reLaunch({ url: '/pages/task/hall' })
 }
 
-async function onLogin() {
-  if (!loginForm.account.trim() || !loginForm.password.trim()) {
-    uni.showToast({ title: '请输入账号和密码', icon: 'none' })
-    return
+function validateLogin() {
+  const account = loginForm.account.trim()
+  errors.account = !account
+    ? '请输入手机号或学号'
+    : PHONE_RE.test(account) || STUDENT_ID_RE.test(account)
+      ? ''
+      : '手机号或学号格式不正确'
+  errors.loginPassword = loginForm.password ? '' : '请输入密码'
+  return !errors.account && !errors.loginPassword
+}
+
+function validateRegister() {
+  errors.student_id = STUDENT_ID_RE.test(registerForm.student_id.trim()) ? '' : '学号需为6-20位字母或数字'
+  errors.phone = PHONE_RE.test(registerForm.phone.trim()) ? '' : '请输入正确的11位手机号'
+  errors.nickname = registerForm.nickname.trim() ? '' : '请输入昵称'
+  errors.password = PASSWORD_RE.test(registerForm.password) ? '' : '密码需为8-32位，且包含字母和数字'
+  errors.code = /^\d{6}$/.test(registerForm.code) ? '' : '验证码必须是6位数字'
+  return !errors.student_id && !errors.phone && !errors.nickname && !errors.password && !errors.code
+}
+
+watch(() => registerForm.phone, () => {
+  if (registerForm.phone.trim() !== verifiedPhone.value) verifiedPhone.value = ''
+})
+
+onBeforeUnmount(() => {
+  if (countdownTimer) clearInterval(countdownTimer)
+})
+
+function startCountdown(seconds = 60) {
+  countdown.value = seconds
+  if (countdownTimer) clearInterval(countdownTimer)
+  countdownTimer = setInterval(() => {
+    countdown.value -= 1
+    if (countdown.value <= 0 && countdownTimer) {
+      clearInterval(countdownTimer)
+      countdownTimer = undefined
+    }
+  }, 1000)
+}
+
+async function sendCode() {
+  if (loading.value || codeSending.value || countdown.value > 0) return
+  const phone = registerForm.phone.trim()
+  errors.phone = PHONE_RE.test(phone) ? '' : '请输入正确的11位手机号'
+  if (errors.phone) return
+  codeSending.value = true
+  try {
+    const result = await http.post<any>('/auth/send-code', { phone }, false)
+    startCountdown(Number(result?.resendAfter || 60))
+    uni.showToast({ title: result?.mockCode ? `模拟验证码 ${result.mockCode}` : '验证码已发送', icon: 'none' })
+  } catch (error: any) {
+    uni.showToast({ title: error.message || '验证码发送失败', icon: 'none' })
+  } finally {
+    codeSending.value = false
   }
+}
+
+async function onLogin() {
+  if (loading.value) return
+  if (!validateLogin()) { scrollToFirstError(); return }
   loading.value = true
   try {
     await authStore.login(loginForm.account.trim(), loginForm.password.trim())
@@ -102,21 +114,16 @@ async function onLogin() {
 }
 
 async function onRegister() {
-  if (
-    !registerForm.student_id.trim() ||
-    !registerForm.phone.trim() ||
-    !registerForm.password.trim() ||
-    !registerForm.nickname.trim()
-  ) {
-    uni.showToast({ title: '请完整填写注册信息', icon: 'none' })
-    return
-  }
-  if (registerForm.password.trim().length < 6) {
-    uni.showToast({ title: '密码至少 6 位', icon: 'none' })
-    return
-  }
+  if (loading.value) return
+  if (!validateRegister()) { scrollToFirstError(); return }
   loading.value = true
   try {
+    const verification = await http.post<any>('/auth/verify-code', {
+      phone: registerForm.phone.trim(),
+      code: registerForm.code,
+    }, false)
+    if (!verification?.verified) throw new Error('验证码校验失败')
+    verifiedPhone.value = registerForm.phone.trim()
     await authStore.register({
       student_id: registerForm.student_id.trim(),
       phone: registerForm.phone.trim(),
@@ -160,24 +167,44 @@ async function onRegister() {
 
       <template v-if="currentTab === 'login'">
         <view class="field-label">账号</view>
-        <input v-model="loginForm.account" class="input" placeholder="手机号 / 学号" />
+        <input v-model="loginForm.account" class="input" placeholder="手机号 / 学号" @input="errors.account = ''" />
+        <view v-if="errors.account" class="field-error">{{ errors.account }}</view>
         <view class="field-label">密码</view>
-        <input v-model="loginForm.password" class="input" password placeholder="请输入密码" />
-        <view class="btn-primary submit-btn" @tap="onLogin">
+        <view class="password-field">
+          <input v-model="loginForm.password" class="input" :password="!showLoginPassword" placeholder="请输入密码" @input="errors.loginPassword = ''" />
+          <view class="password-toggle" @tap="showLoginPassword = !showLoginPassword">{{ showLoginPassword ? '隐藏' : '显示' }}</view>
+        </view>
+        <view v-if="errors.loginPassword" class="field-error">{{ errors.loginPassword }}</view>
+        <view class="btn-primary submit-btn" :class="{ disabled: loading }" @tap="onLogin">
           {{ loading ? '登录中...' : '立即登录' }}
         </view>
       </template>
 
       <template v-else>
         <view class="field-label">学号</view>
-        <input v-model="registerForm.student_id" class="input" placeholder="请输入学号" />
+        <input v-model="registerForm.student_id" class="input" maxlength="20" placeholder="6-20位字母或数字" @input="errors.student_id = ''" />
+        <view v-if="errors.student_id" class="field-error">{{ errors.student_id }}</view>
         <view class="field-label">手机号</view>
-        <input v-model="registerForm.phone" class="input" type="number" placeholder="请输入手机号" />
+        <input v-model="registerForm.phone" class="input" type="number" maxlength="11" placeholder="请输入11位手机号" @input="errors.phone = ''" />
+        <view v-if="errors.phone" class="field-error">{{ errors.phone }}</view>
+        <view class="field-label">手机验证码</view>
+        <view class="code-row">
+          <input v-model="registerForm.code" class="input code-input" type="number" maxlength="6" placeholder="6位验证码" @input="errors.code = ''" />
+          <button class="code-button" :disabled="countdown > 0 || codeSending || loading" @tap="sendCode">
+            {{ countdown > 0 ? `${countdown}s` : codeSending ? '发送中' : '获取验证码' }}
+          </button>
+        </view>
+        <view v-if="errors.code" class="field-error">{{ errors.code }}</view>
         <view class="field-label">昵称</view>
-        <input v-model="registerForm.nickname" class="input" placeholder="请输入昵称" />
+        <input v-model="registerForm.nickname" class="input" placeholder="请输入昵称" @input="errors.nickname = ''" />
+        <view v-if="errors.nickname" class="field-error">{{ errors.nickname }}</view>
         <view class="field-label">密码</view>
-        <input v-model="registerForm.password" class="input" password placeholder="至少 6 位" />
-        <view class="btn-primary submit-btn" @tap="onRegister">
+        <view class="password-field">
+          <input v-model="registerForm.password" class="input" :password="!showRegisterPassword" placeholder="8-32位，包含字母和数字" @input="errors.password = ''" />
+          <view class="password-toggle" @tap="showRegisterPassword = !showRegisterPassword">{{ showRegisterPassword ? '隐藏' : '显示' }}</view>
+        </view>
+        <view v-if="errors.password" class="field-error">{{ errors.password }}</view>
+        <view class="btn-primary submit-btn" :class="{ disabled: loading }" @tap="onRegister">
           {{ loading ? '提交中...' : '完成注册' }}
         </view>
       </template>
@@ -189,10 +216,14 @@ async function onRegister() {
 .auth-page {
   display: flex;
   align-items: center;
+  padding-top: max(32rpx, env(safe-area-inset-top));
+  padding-bottom: max(32rpx, env(safe-area-inset-bottom));
 }
 
 .hero {
   width: 100%;
+  max-width: 680rpx;
+  margin: auto;
 }
 
 .tabs {
@@ -226,5 +257,37 @@ async function onRegister() {
 
 .field-label:not(:first-child) {
   margin-top: 24rpx;
+}
+
+.field-error { margin-top: 8rpx; color: #f53f3f; font-size: 22rpx; }
+.password-field { position: relative; }
+.password-field .input { padding-right: 116rpx; }
+.password-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  width: 108rpx;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  color: #165dff;
+  font-size: 24rpx;
+}
+.code-row { display: grid; grid-template-columns: minmax(0, 1fr) 210rpx; gap: 16rpx; }
+.code-button {
+  height: 84rpx;
+  border-radius: 16rpx;
+  background: #eef3ff;
+  color: #165dff;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+.code-button[disabled] { opacity: 0.55; }
+
+@media screen and (max-width: 375px) {
+  .auth-page { padding-right: 20rpx; padding-left: 20rpx; }
+  .hero { border: 0; padding: 24rpx; box-shadow: none; }
+  .code-row { grid-template-columns: minmax(0, 1fr) 190rpx; }
 }
 </style>

@@ -13,7 +13,7 @@ export default {
 </script>
 
 <style lang="scss">
-@import './uni.scss';
-@import './styles/common.scss';
-@import './src/app.scss';
+@use './uni.scss';
+@use './styles/common.scss';
+@use './src/app.scss';
 </style>

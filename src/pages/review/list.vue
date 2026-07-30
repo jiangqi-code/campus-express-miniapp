@@ -34,9 +34,11 @@
       refresher-enabled
       :refresher-triggered="refreshing"
       @refresherrefresh="onRefresh"
+      lower-threshold="120"
+      @scrolltolower="loadMore"
     >
       <view v-if="error" class="error-wrap card">
-        <text class="error-icon">⚠️</text>
+        <text class="error-icon">!</text>
         <text class="error-text">{{ error }}</text>
         <button class="btn-primary retry-btn" @tap="fetchList">重新加载</button>
       </view>
@@ -46,7 +48,7 @@
       </view>
 
       <view v-else-if="list.length === 0" class="empty-box">
-        <text class="empty-icon">📭</text>
+        <text class="empty-icon">○</text>
         <text class="empty-text">
           {{ activeTab === 'received' ? '暂未收到评价' : '暂未发出评价' }}
         </text>
@@ -115,25 +117,7 @@
           </view>
         </view>
 
-        <view v-if="list.length > 0" class="pagination card">
-          <button
-            class="btn-secondary page-btn"
-            :disabled="page <= 1 || loading"
-            @tap="prevPage"
-          >
-            上一页
-          </button>
-          <text class="page-info">
-            第 {{ page }}/{{ totalPages }} 页 共 {{ total }} 条
-          </text>
-          <button
-            class="btn-secondary page-btn"
-            :disabled="page >= totalPages || loading"
-            @tap="nextPage"
-          >
-            下一页
-          </button>
-        </view>
+        <view v-if="list.length > 0" class="list-footer">{{ loading ? '加载中…' : page < totalPages ? '上拉加载更多' : '已加载全部评价' }}</view>
       </view>
     </scroll-view>
   </view>
@@ -206,7 +190,7 @@ const selectRating = (rating: number | null) => {
   fetchList()
 }
 
-const fetchList = async () => {
+const fetchList = async (append = false) => {
   loading.value = true
   error.value = null
   try {
@@ -221,7 +205,8 @@ const fetchList = async () => {
     const res: any = await http.get(url, params)
     const data = res?.data ?? res
     const items = data?.items ?? data?.list ?? []
-    list.value = Array.isArray(items) ? items : []
+    const nextItems = Array.isArray(items) ? items : []
+    list.value = append ? [...list.value, ...nextItems.filter((next: ReviewItem) => !list.value.some((item) => item.id === next.id))] : nextItems
     total.value = Number(data?.total ?? list.value.length) || 0
   } catch (e: any) {
     error.value = e?.message || '加载失败，请重试'
@@ -240,16 +225,10 @@ const onRefresh = () => {
   fetchList()
 }
 
-const prevPage = () => {
-  if (page.value <= 1) return
-  page.value--
-  fetchList()
-}
-
-const nextPage = () => {
-  if (page.value >= totalPages.value) return
+const loadMore = () => {
+  if (loading.value || page.value >= totalPages.value) return
   page.value++
-  fetchList()
+  fetchList(true)
 }
 
 const previewImages = (images: string[], current: number) => {
@@ -262,7 +241,7 @@ const previewImages = (images: string[], current: number) => {
 
 const goToOrder = (orderId: string | number) => {
   uni.navigateTo({
-    url: `/pages/order/published?orderId=${orderId}`,
+    url: `/pages/order/detail?orderId=${orderId}`,
   })
 }
 

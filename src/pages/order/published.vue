@@ -1,12 +1,6 @@
 <template>
   <view class="published-page">
-    <scroll-view
-      scroll-y
-      class="order-scroll"
-      refresher-enabled
-      :refresher-triggered="refreshing"
-      @refresherrefresh="onRefresh"
-    >
+    <view>
       <view v-if="loading && list.length === 0" class="loading-wrap">
         <text class="loading-text">加载中...</text>
       </view>
@@ -46,7 +40,7 @@
           </view>
 
           <view class="action-grid">
-            <view class="action-col">
+            <view v-if="canContact(item)" class="action-col">
               <button
                 class="action-btn outline-btn"
                 size="mini"
@@ -59,67 +53,69 @@
               <button
                 class="action-btn outline-btn"
                 size="mini"
-                :disabled="!canContact(item)"
                 @tap="contactRunner(item)"
               >
                 联系跑腿
               </button>
             </view>
-            <view class="action-col">
+            <view v-if="canUrge(item)" class="action-col">
               <button
-                v-if="canUrge(item)"
                 class="action-btn primary-btn"
                 size="mini"
+                :disabled="isUrgeCooling(item) || isActionBusy(item, 'urge')"
                 @tap="handleUrge(item)"
               >
-                催单
+                {{ getUrgeButtonText(item) }}
               </button>
+            </view>
+            <view v-if="canCancel(item)" class="action-col">
               <button
-                v-else-if="canCancel(item)"
                 class="action-btn danger-btn"
                 size="mini"
+                :disabled="isActionBusy(item, 'cancel')"
                 @tap="handleCancel(item)"
               >
-                取消
+                取消订单
               </button>
+            </view>
+            <view v-if="canConfirm(item)" class="action-col">
               <button
-                v-else-if="canConfirm(item)"
                 class="action-btn primary-btn"
                 size="mini"
+                :disabled="isActionBusy(item, 'confirm')"
                 @tap="handleConfirm(item)"
               >
                 确认完成
               </button>
+            </view>
+            <view v-if="canReview(item)" class="action-col review-col">
               <button
-                v-else-if="canApplyRefund(item)"
-                class="action-btn warn-btn"
-                size="mini"
-                @tap="openRefundModal(item)"
-              >
-                申请退款
-              </button>
-              <button
-                v-else-if="canReview(item)"
                 class="action-btn primary-btn"
                 size="mini"
                 @tap="goReview(item)"
               >
-                去评价
+                评价本次服务
               </button>
+            </view>
+            <view v-if="isReviewed(item)" class="action-col">
               <button
-                v-else-if="isReviewed(item)"
                 class="action-btn disabled-btn"
                 size="mini"
                 disabled
               >
                 已评价
               </button>
-              <view v-else class="action-placeholder"></view>
             </view>
           </view>
+          <view v-if="canApplyRefund(item)" class="secondary-actions">
+            <text class="refund-link" @tap="openRefundModal(item)">退款/售后</text>
+          </view>
+        </view>
+        <view class="load-more">
+          <text>{{ loadingMore ? '加载中...' : hasMore ? '上拉加载更多' : '没有更多订单了' }}</text>
         </view>
       </view>
-    </scroll-view>
+    </view>
 
     <view v-if="refundModal.visible" class="modal-mask" @tap="closeRefundModal">
       <view class="modal-content" @tap.stop>
@@ -165,8 +161,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { onPullDownRefresh } from '@dcloudio/uni-app'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { onPullDownRefresh, onReachBottom } from '@dcloudio/uni-app'
 import { http } from '@/utils/request'
 
 interface OrderItem {
@@ -194,6 +190,16 @@ interface OrderItem {
 const list = ref<OrderItem[]>([])
 const loading = ref(false)
 const refreshing = ref(false)
+const loadingMore = ref(false)
+const page = ref(1)
+const pageSize = 10
+const hasMore = ref(true)
+const actionBusy = ref<Record<string, string>>({})
+const now = ref(Date.now())
+const URGE_COOLDOWN_MS = 5 * 60 * 1000
+const URGE_STORAGE_KEY = 'ce_published_order_urge_cooldowns'
+const urgeTimestamps = ref<Record<string, number>>({})
+let cooldownTimer: ReturnType<typeof setInterval> | undefined
 
 const refundModal = reactive({
   visible: false,
@@ -256,17 +262,8 @@ const getStatusClass = (item: OrderItem): string => {
   return ''
 }
 
-const isFinishedStatus = (item: OrderItem): boolean => {
-  const s = item.status || ''
-  return ['COMPLETED', 'CANCELLED', 'CANCELED', 'REFUNDED'].includes(s)
-}
-
 const canUrge = (item: OrderItem): boolean => {
-  if (isFinishedStatus(item)) return false
-  if (canCancel(item)) return false
-  if (canConfirm(item)) return false
-  if (canApplyRefund(item)) return false
-  return true
+  return ['ACCEPTED', 'PICKING_UP', 'DELIVERING'].includes(item.status || '')
 }
 
 const canCancel = (item: OrderItem): boolean => {
@@ -282,7 +279,7 @@ const canApplyRefund = (item: OrderItem): boolean => {
 }
 
 const canReview = (item: OrderItem): boolean => {
-  return item.status === 'COMPLETED' && !isReviewed(item)
+  return item.status === 'COMPLETED' && !!item.confirmed && !isReviewed(item)
 }
 
 const isReviewed = (item: OrderItem): boolean => {
@@ -301,24 +298,42 @@ const formatTime = (time?: string): string => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-const fetchList = async () => {
-  loading.value = true
+const mergeUnique = (current: OrderItem[], incoming: OrderItem[]) => {
+  const seen = new Set(current.map(item => String(getItemId(item))))
+  return [...current, ...incoming.filter(item => !seen.has(String(getItemId(item))))]
+}
+
+const fetchList = async (reset = true) => {
+  if (reset) {
+    loading.value = true
+    page.value = 1
+  } else {
+    if (loadingMore.value || !hasMore.value) return
+    loadingMore.value = true
+  }
   try {
-    const res: any = await http.get<any>('/order/list', { type: 'published' })
+    const res: any = await http.get<any>('/order/list', {
+      type: 'published', page: page.value, page_size: pageSize, pageSize
+    })
     const data = (res?.data ?? res)
     const items = data?.list ?? data?.rows ?? data?.items ?? data?.orders ?? (Array.isArray(data) ? data : [])
-    list.value = Array.isArray(items) ? items as OrderItem[] : []
+    const nextItems = Array.isArray(items) ? items as OrderItem[] : []
+    list.value = reset ? nextItems : mergeUnique(list.value, nextItems)
+    const total = Number(data?.total ?? data?.count ?? 0)
+    hasMore.value = total > 0 ? list.value.length < total : nextItems.length >= pageSize
   } catch (e) {
     uni.showToast({ title: '加载失败', icon: 'none' })
   } finally {
     loading.value = false
+    loadingMore.value = false
     refreshing.value = false
+    uni.stopPullDownRefresh()
   }
 }
 
 const onRefresh = () => {
   refreshing.value = true
-  fetchList()
+  fetchList(true)
 }
 
 onPullDownRefresh(() => {
@@ -341,23 +356,33 @@ const contactRunner = (item: OrderItem) => {
 
 const handleUrge = async (item: OrderItem) => {
   const id = getItemId(item)
+  if (!id || isUrgeCooling(item) || isActionBusy(item, 'urge')) return
+  actionBusy.value[String(id)] = 'urge'
   try {
     await http.post(`/order/${encodeURIComponent(id)}/urge`)
+    urgeTimestamps.value[String(id)] = Date.now()
+    uni.setStorageSync(URGE_STORAGE_KEY, urgeTimestamps.value)
+    now.value = Date.now()
     uni.showToast({ title: '催单成功', icon: 'success' })
   } catch (e: any) {
     uni.showToast({ title: e?.message || '催单失败', icon: 'none' })
+  } finally {
+    delete actionBusy.value[String(id)]
   }
 }
 
 const handleCancel = (item: OrderItem) => {
   const isOrder = !!item.order_id
-  const content = isOrder ? '确定取消该订单吗？' : '确定取消该任务吗？'
+  const content = isOrder ? '取消后订单将停止流转，确定取消该订单吗？' : '取消后任务将不再展示，确定取消该任务吗？'
   uni.showModal({
-    title: '提示',
+    title: '确认取消',
     content,
+    confirmText: '确认取消',
+    confirmColor: '#ef4444',
     success: async (res) => {
       if (!res.confirm) return
       const id = getItemId(item)
+      actionBusy.value[String(id)] = 'cancel'
       try {
         if (isOrder) {
           await http.put(`/order/${encodeURIComponent(id)}/cancel`)
@@ -365,9 +390,11 @@ const handleCancel = (item: OrderItem) => {
           await http.delete(`/task/${encodeURIComponent(id)}/cancel`)
         }
         uni.showToast({ title: '取消成功', icon: 'success' })
-        fetchList()
+        fetchList(true)
       } catch (e: any) {
         uni.showToast({ title: e?.message || '取消失败', icon: 'none' })
+      } finally {
+        delete actionBusy.value[String(id)]
       }
     }
   })
@@ -375,13 +402,17 @@ const handleCancel = (item: OrderItem) => {
 
 const handleConfirm = async (item: OrderItem) => {
   const id = getItemId(item)
+  if (!id || isActionBusy(item, 'confirm')) return
+  actionBusy.value[String(id)] = 'confirm'
   try {
     await http.post(`/order/confirm/${encodeURIComponent(id)}`)
     uni.showToast({ title: '确认成功', icon: 'success' })
     item.confirmed = true
-    fetchList()
+    fetchList(true)
   } catch (e: any) {
     uni.showToast({ title: e?.message || '确认失败', icon: 'none' })
+  } finally {
+    delete actionBusy.value[String(id)]
   }
 }
 
@@ -415,7 +446,7 @@ const submitRefund = async () => {
     })
     uni.showToast({ title: '申请已提交', icon: 'success' })
     closeRefundModal()
-    fetchList()
+    fetchList(true)
   } catch (e: any) {
     uni.showToast({ title: e?.message || '提交失败', icon: 'none' })
   }
@@ -428,8 +459,38 @@ const goReview = (item: OrderItem) => {
   })
 }
 
+const isActionBusy = (item: OrderItem, action: string) => actionBusy.value[String(getItemId(item))] === action
+
+const getUrgeRemainSeconds = (item: OrderItem) => {
+  const lastAt = urgeTimestamps.value[String(getItemId(item))] || 0
+  return Math.max(0, Math.ceil((lastAt + URGE_COOLDOWN_MS - now.value) / 1000))
+}
+
+const isUrgeCooling = (item: OrderItem) => getUrgeRemainSeconds(item) > 0
+
+const getUrgeButtonText = (item: OrderItem) => {
+  const seconds = getUrgeRemainSeconds(item)
+  if (!seconds) return '催单'
+  const minutes = Math.floor(seconds / 60).toString().padStart(2, '0')
+  const remain = (seconds % 60).toString().padStart(2, '0')
+  return `催单 ${minutes}:${remain}`
+}
+
+onReachBottom(() => {
+  if (!hasMore.value || loading.value || loadingMore.value) return
+  page.value += 1
+  fetchList(false)
+})
+
 onMounted(() => {
-  fetchList()
+  const stored = uni.getStorageSync(URGE_STORAGE_KEY)
+  if (stored && typeof stored === 'object') urgeTimestamps.value = stored
+  cooldownTimer = setInterval(() => { now.value = Date.now() }, 1000)
+  fetchList(true)
+})
+
+onUnmounted(() => {
+  if (cooldownTimer) clearInterval(cooldownTimer)
 })
 </script>
 
@@ -437,10 +498,6 @@ onMounted(() => {
 .published-page {
   min-height: 100vh;
   background: #f5f6f8;
-}
-
-.order-scroll {
-  height: 100vh;
 }
 
 .loading-wrap,
@@ -586,17 +643,20 @@ onMounted(() => {
 }
 
 .action-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 16rpx;
   padding-top: 20rpx;
   border-top: 1rpx solid #f0f0f0;
 }
 
 .action-col {
+  flex: 1 1 30%;
   display: flex;
   justify-content: center;
 }
+
+.review-col { flex-basis: 45%; }
 
 .action-btn {
   width: 100%;
@@ -631,6 +691,10 @@ onMounted(() => {
   color: #fa8c16;
   border: 1rpx solid #ffd591;
 }
+
+.secondary-actions { display: flex; justify-content: flex-end; padding-top: 18rpx; }
+.refund-link { color: #8c8c8c; font-size: 24rpx; text-decoration: underline; }
+.load-more { padding: 8rpx 0 32rpx; text-align: center; color: #999; font-size: 24rpx; }
 
 .disabled-btn {
   background: #f5f5f5;

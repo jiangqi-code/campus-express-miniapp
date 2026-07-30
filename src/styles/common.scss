@@ -1,0 +1,348 @@
+@use './variables.scss' as *;
+
+page {
+  background: #f6f7fb;
+  color: #111827;
+  font-size: 28rpx;
+}
+
+view,
+text,
+button,
+input,
+textarea,
+scroll-view {
+  box-sizing: border-box;
+}
+
+button {
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+  background: transparent;
+}
+
+button::after {
+  border: 0;
+}
+
+.page-shell {
+  min-height: 100vh;
+  padding: 24rpx 24rpx 170rpx;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  box-shadow: 0 12rpx 32rpx rgba(15, 23, 42, 0.06);
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 700;
+}
+
+.section-desc {
+  margin-top: 8rpx;
+  color: #6b7280;
+  font-size: 24rpx;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+}
+
+.row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.gap-8 {
+  gap: 8rpx;
+}
+
+.gap-12 {
+  gap: 12rpx;
+}
+
+.gap-16 {
+  gap: 16rpx;
+}
+
+.gap-20 {
+  gap: 20rpx;
+}
+
+.gap-24 {
+  gap: 24rpx;
+}
+
+.muted {
+  color: #6b7280;
+}
+
+.primary {
+  color: #2563eb;
+}
+
+.success {
+  color: #16a34a;
+}
+
+.danger {
+  color: #ef4444;
+}
+
+.btn-primary,
+.btn-secondary,
+.btn-danger,
+.btn-ghost {
+  height: 84rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: #ffffff;
+}
+
+.btn-secondary {
+  background: #eef2ff;
+  color: #2563eb;
+}
+
+.btn-danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.btn-ghost {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.input,
+.textarea,
+.picker-like {
+  width: 100%;
+  border-radius: 18rpx;
+  background: #f9fafb;
+  border: 2rpx solid #e5e7eb;
+  padding: 24rpx;
+  font-size: 28rpx;
+}
+
+/* uni-app H5 的真实输入节点在 uni-input 内部，需要把内层 wrapper/input 撑开才能正常聚焦 */
+uni-input.input {
+  display: flex;
+  align-items: center;
+}
+
+uni-input.input .uni-input-wrapper {
+  width: 100%;
+  min-height: 36rpx;
+}
+
+uni-input.input .uni-input-input {
+  width: 100%;
+  min-height: 36rpx;
+  line-height: 36rpx;
+}
+
+.textarea {
+  min-height: 180rpx;
+}
+
+.field-label {
+  margin-bottom: 16rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 96rpx;
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  font-size: 22rpx;
+}
+
+.badge-primary {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.badge-success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.badge-warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.badge-danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.badge-default {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.empty-box {
+  padding: 60rpx 24rpx;
+  text-align: center;
+  color: #6b7280;
+}
+
+.thumb-list {
+  display: flex;
+  gap: 16rpx;
+  overflow-x: auto;
+}
+
+.thumb-image {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: 20rpx;
+  background: #f3f4f6;
+}
+
+button,
+[class*='btn'],
+.tabbar-item,
+.menu-item,
+.list-group-item,
+.clickable {
+  min-width: 88rpx;
+  min-height: 88rpx;
+}
+
+[class*='btn'],
+.tabbar-item,
+.menu-item,
+.clickable {
+  touch-action: manipulation;
+}
+
+.field-error,
+.form-error,
+.error {
+  margin-top: 8rpx;
+  color: $color-error;
+  font-size: $font-size-xs;
+  line-height: 1.5;
+}
+
+.list-footer {
+  min-height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: $color-text-tertiary;
+  font-size: $font-size-sm;
+}
+
+.status-text::before {
+  content: '●';
+  margin-right: 8rpx;
+  font-size: 18rpx;
+}
+
+/* 全局设计规范覆盖：保留页面结构与交互，仅统一基础视觉。 */
+page {
+  background: $color-bg-page;
+  color: $color-text-primary;
+  font-family: $font-family-base;
+  font-size: $font-size-md;
+  line-height: $line-height-normal;
+}
+
+.page-shell { padding: $space-6 $space-6 170rpx; }
+
+.card {
+  background: $color-bg-card;
+  border: 2rpx solid $color-border;
+  border-radius: $radius-card;
+  padding: $space-6;
+  box-shadow: $shadow-card;
+}
+
+.section-title { color: $color-text-primary; font-size: $font-size-lg; }
+.section-desc, .muted { color: $color-text-tertiary; }
+.primary { color: $color-primary; }
+.success { color: $color-success; }
+.danger { color: $color-error; }
+
+.btn-primary, .btn-secondary, .btn-danger, .btn-ghost {
+  border-radius: $radius-control;
+  font-size: $font-size-md;
+}
+.btn-primary { background: linear-gradient(135deg, $color-primary-dark, $color-primary); color: $color-text-white; }
+.btn-secondary { background: $color-primary-soft; color: $color-primary; }
+.btn-danger { background: $color-error-soft; color: $color-error; }
+.btn-ghost { background: $color-bg-hover; color: $color-text-secondary; }
+.btn-primary.disabled, .btn-secondary.disabled, .btn-danger.disabled, .btn-ghost.disabled, button[disabled] { opacity: 0.52; }
+
+.input, .textarea, .picker-like {
+  border: 2rpx solid $color-border;
+  border-radius: $radius-control;
+  background: $color-bg-card;
+  font-size: $font-size-md;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+.input:focus, .textarea:focus, .picker-like:focus { border-color: $color-primary; box-shadow: $focus-ring; }
+.field-label { color: $color-text-secondary; font-weight: 600; }
+
+.badge { border-radius: $radius-pill; font-size: $font-size-xs; font-weight: 600; }
+.badge-primary { background: $color-primary-soft; color: $color-primary; }
+.badge-success { background: $color-success-soft; color: $color-success; }
+.badge-warning { background: $color-warning-soft; color: $color-warning; }
+.badge-danger { background: $color-error-soft; color: $color-error; }
+.badge-default { background: $color-bg-hover; color: $color-text-secondary; }
+
+.empty-box {
+  display: flex;
+  min-height: 240rpx;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: $space-3;
+  padding: $space-16 $space-6;
+  color: $color-text-tertiary;
+  text-align: center;
+}
+.empty-title { color: $color-text-primary; font-size: $font-size-lg; font-weight: 600; }
+.empty-desc, .empty-text { color: $color-text-tertiary; font-size: $font-size-sm; }
+
+.skeleton, .skeleton-row, .skeleton-block {
+  overflow: hidden;
+  border-radius: $radius-sm;
+  background: linear-gradient(90deg, $color-bg-hover 25%, $color-bg-card 37%, $color-bg-hover 63%);
+  background-size: 400% 100%;
+  animation: ce-skeleton 1.4s ease infinite;
+}
+
+@keyframes ce-skeleton {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}

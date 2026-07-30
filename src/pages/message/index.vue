@@ -34,11 +34,11 @@ const getTitle = (item: MessageItem) => {
   return item.title || '系统消息'
 }
 
-const fetchMessages = async (targetPage?: number) => {
+const fetchMessages = async (targetPage?: number, append = false) => {
   loading.value = true
   try {
     const p = targetPage ?? page.value
-    await messageStore.fetchMessages(p, pageSize.value)
+    await messageStore.fetchMessages(p, pageSize.value, append)
   } catch (error: any) {
     uni.showToast({ title: error?.message || '消息加载失败', icon: 'none' })
   } finally {
@@ -69,12 +69,9 @@ const openMessage = async (item: MessageItem) => {
   if (!item.is_read) {
     await markRead(item.id)
   }
-  if (item.type === 'chat' && item.conversation_id) {
-    uni.navigateTo({ url: `/pages/order/published?orderId=${item.conversation_id}&chat=1` })
-    return
-  }
-  if (item.type === 'order' && item.related_id) {
-    uni.navigateTo({ url: `/pages/order/published?orderId=${item.related_id}` })
+  const orderId = (item as any).order_id ?? (item as any).orderId ?? item.related_id ?? item.conversation_id
+  if ((item.type === 'chat' || item.type === 'order' || orderId) && orderId) {
+    uni.navigateTo({ url: `/pages/order/detail?orderId=${orderId}` })
     return
   }
   if (item.type === 'task' && item.related_id) {
@@ -82,15 +79,7 @@ const openMessage = async (item: MessageItem) => {
   }
 }
 
-const goPrevPage = () => {
-  if (!hasPrev.value) return
-  fetchMessages(page.value - 1)
-}
-
-const goNextPage = () => {
-  if (!hasNext.value) return
-  fetchMessages(page.value + 1)
-}
+const loadMore = () => { if (hasNext.value && !loading.value) fetchMessages(page.value + 1, true) }
 
 const retry = () => {
   fetchMessages(1)
@@ -102,9 +91,6 @@ onPullDownRefresh(() => {
 
 onLoad(async () => {
   await authStore.bootstrap()
-  if (authStore.token) {
-    messageStore.initSocket(authStore.token)
-  }
   fetchMessages(1)
 })
 </script>
@@ -139,7 +125,7 @@ onLoad(async () => {
       <view class="btn-primary retry-btn" @tap="retry">重试</view>
     </view>
 
-    <scroll-view v-else scroll-y class="message-scroll" :show-scrollbar="false">
+    <scroll-view v-else scroll-y class="message-scroll" :show-scrollbar="false" lower-threshold="120" @scrolltolower="loadMore">
       <view v-if="messages.length === 0 && !loading" class="card empty-card">
         <view class="empty-illustration">📭</view>
         <view class="empty-title">暂无消息</view>
@@ -185,23 +171,7 @@ onLoad(async () => {
         </view>
       </view>
 
-      <view v-if="messages.length > 0" class="pagination card">
-        <view
-          class="btn-secondary page-btn"
-          :class="{ disabled: !hasPrev || loading }"
-          @tap="goPrevPage"
-        >
-          上一页
-        </view>
-        <view class="page-info muted">{{ page }} / {{ totalPages }}（共 {{ total }} 条）</view>
-        <view
-          class="btn-primary page-btn"
-          :class="{ disabled: !hasNext || loading }"
-          @tap="goNextPage"
-        >
-          下一页
-        </view>
-      </view>
+      <view v-if="messages.length > 0" class="list-footer">{{ loading ? '加载中…' : hasNext ? '上拉加载更多' : '已加载全部消息' }}</view>
     </scroll-view>
 
     <AppTabBar current="message" :unread-message-count="unreadCount" />

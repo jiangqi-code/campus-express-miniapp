@@ -16,6 +16,10 @@ interface ExtendedOrderItem extends OrderItem {
 
 const loading = ref(false)
 const orders = ref<ExtendedOrderItem[]>([])
+const actionLocks = ref<Record<string, boolean>>({})
+const failedUpload = ref<{ orderId: string; type: 'pickup' | 'complete'; filePath: string } | null>(null)
+const pendingOperation = ref<{ orderId: string; type: 'pickup' | 'deliver' | 'complete'; photoUrl?: string } | null>(null)
+const PENDING_OPERATION_KEY = 'ce:taken:pending-operation'
 let deliveringTimer: ReturnType<typeof setInterval> | null = null
 
 const normalizeStatus = (status: unknown): string => {
@@ -166,19 +170,52 @@ const stopDeliveringTimer = () => {
   }
 }
 
-const chooseAndUploadPhoto = (callback: (url: string) => Promise<void>) => {
+const runLocked = async (orderId: string, runner: () => Promise<void>) => {
+  if (actionLocks.value[orderId]) return
+  actionLocks.value = { ...actionLocks.value, [orderId]: true }
+  try {
+    await runner()
+  } finally {
+    actionLocks.value = { ...actionLocks.value, [orderId]: false }
+  }
+}
+
+const submitOperation = async (operation: { orderId: string; type: 'pickup' | 'deliver' | 'complete'; photoUrl?: string }) => {
+  pendingOperation.value = operation
+  uni.setStorageSync(PENDING_OPERATION_KEY, operation)
+  if (operation.type === 'pickup') {
+    await http.put(`/order/pickup/${encodeURIComponent(operation.orderId)}`, { pickup_photo_url: operation.photoUrl })
+  } else if (operation.type === 'deliver') {
+    await http.put(`/order/deliver/${encodeURIComponent(operation.orderId)}`)
+  } else {
+    await http.put(`/order/${encodeURIComponent(operation.orderId)}/delivery-photo`, { delivery_photo_url: operation.photoUrl })
+    await http.put(`/order/complete/${encodeURIComponent(operation.orderId)}`)
+  }
+  pendingOperation.value = null
+  uni.removeStorageSync(PENDING_OPERATION_KEY)
+}
+
+const uploadSelectedPhoto = async (orderId: string, type: 'pickup' | 'complete', filePath: string) => {
+  await runLocked(orderId, async () => {
+    try {
+      const url = await uploadImage(filePath)
+      failedUpload.value = null
+      await submitOperation({ orderId, type, photoUrl: url })
+      uni.showToast({ title: type === 'pickup' ? '已取件' : '已上传照片并完成订单', icon: 'success' })
+      await fetchOrders()
+    } catch (error: any) {
+      failedUpload.value = { orderId, type, filePath }
+      uni.showToast({ title: error.message || '提交失败，可点击重试', icon: 'none' })
+    }
+  })
+}
+
+const chooseAndUploadPhoto = (orderId: string, type: 'pickup' | 'complete') => {
   uni.chooseImage({
     count: 1,
     sizeType: ['compressed'],
     sourceType: ['album', 'camera'],
-    success: async (res) => {
-      try {
-        const url = await uploadImage(res.tempFilePaths[0])
-        await callback(url)
-      } catch (error: any) {
-        uni.showToast({ title: error.message || '上传失败', icon: 'none' })
-      }
-    },
+    success: (res) => uploadSelectedPhoto(orderId, type, res.tempFilePaths[0]),
   })
 }
 
@@ -198,36 +235,29 @@ const runnerNextAction = (item: ExtendedOrderItem): { label: string; type: 'pick
 }
 
 const pickupOrder = (orderId: string) => {
-  chooseAndUploadPhoto(async (url) => {
-    await http.put(`/order/pickup/${encodeURIComponent(orderId)}`, { pickup_photo_url: url })
-    uni.showToast({ title: '已取件', icon: 'success' })
-    fetchOrders()
-  })
+  chooseAndUploadPhoto(orderId, 'pickup')
 }
 
 const startDelivery = async (orderId: string) => {
-  try {
-    await http.put(`/order/deliver/${encodeURIComponent(orderId)}`)
-    uni.showToast({ title: '开始配送', icon: 'success' })
-    fetchOrders()
-  } catch (error: any) {
-    uni.showToast({ title: error.message || '操作失败', icon: 'none' })
-  }
+  await runLocked(orderId, async () => {
+    try {
+      await submitOperation({ orderId, type: 'deliver' })
+      uni.showToast({ title: '开始配送', icon: 'success' })
+      await fetchOrders()
+    } catch (error: any) {
+      uni.showToast({ title: error.message || '网络异常，恢复后可重新提交', icon: 'none' })
+    }
+  })
 }
 
 const completeOrder = (orderId: string) => {
-  chooseAndUploadPhoto(async (url) => {
-    await http.put(`/order/${encodeURIComponent(orderId)}/delivery-photo`, { delivery_photo_url: url })
-    await http.put(`/order/complete/${encodeURIComponent(orderId)}`)
-    uni.showToast({ title: '已上传照片并完成订单', icon: 'success' })
-    fetchOrders()
-  })
+  chooseAndUploadPhoto(orderId, 'complete')
 }
 
 const handleRunnerAction = (item: ExtendedOrderItem) => {
   const action = runnerNextAction(item)
   const id = item.order_id || item.id
-  if (!id || action.type === 'none') return
+  if (!id || action.type === 'none' || actionLocks.value[id]) return
   if (action.type === 'pickup') pickupOrder(id)
   else if (action.type === 'deliver') startDelivery(id)
   else if (action.type === 'complete') completeOrder(id)
@@ -238,12 +268,44 @@ const openTaskDetail = (taskId: string) => {
 }
 
 const openChat = (item: ExtendedOrderItem) => {
-  const id = item.task_id || item.id
+  const id = item.order_id || item.id
   if (!id) {
     uni.showToast({ title: '参数错误', icon: 'none' })
     return
   }
-  uni.navigateTo({ url: `/pages/task/detail?id=${id}&chat=true` })
+  uni.navigateTo({ url: `/pages/message/index?orderId=${encodeURIComponent(id)}` })
+}
+
+const statusStepIndex = (item: ExtendedOrderItem) => {
+  const status = normalizeStatus(item.status)
+  if (status === 'COMPLETED') return 3
+  if (status === 'DELIVERING') return 2
+  if (status === 'PICKED_UP') return 1
+  return 0
+}
+
+const retryFailedUpload = () => {
+  if (!failedUpload.value) return
+  const { orderId, type, filePath } = failedUpload.value
+  uploadSelectedPhoto(orderId, type, filePath)
+}
+
+const retryPendingOperation = async () => {
+  const operation = pendingOperation.value
+  if (!operation || actionLocks.value[operation.orderId]) return
+  await runLocked(operation.orderId, async () => {
+    try {
+      await submitOperation(operation)
+      uni.showToast({ title: '重新提交成功', icon: 'success' })
+      await fetchOrders()
+    } catch (error: any) {
+      uni.showToast({ title: error.message || '网络仍不可用', icon: 'none' })
+    }
+  })
+}
+
+const handleNetworkChange = (res: UniApp.OnNetworkStatusChangeSuccess) => {
+  if (res.isConnected && pendingOperation.value) retryPendingOperation()
 }
 
 const progressDotStyle = (progress: number) => {
@@ -269,11 +331,15 @@ onShow(() => {
 })
 
 onMounted(() => {
+  const stored = uni.getStorageSync(PENDING_OPERATION_KEY)
+  if (stored && typeof stored === 'object') pendingOperation.value = stored
+  uni.onNetworkStatusChange(handleNetworkChange)
   fetchOrders()
   startDeliveringTimer()
 })
 
 onUnmounted(() => {
+  uni.offNetworkStatusChange(handleNetworkChange)
   stopDeliveringTimer()
 })
 </script>
@@ -294,6 +360,14 @@ onUnmounted(() => {
     <view v-else-if="orders.length === 0" class="empty-box">暂无已接单订单</view>
 
     <view v-else class="order-list">
+      <view v-if="pendingOperation" class="card recovery-card">
+        <text>上次操作尚未提交成功</text>
+        <view class="btn-secondary recovery-btn" @tap="retryPendingOperation">重新提交</view>
+      </view>
+      <view v-if="failedUpload" class="card recovery-card">
+        <text>照片上传失败，已保留本次选择</text>
+        <view class="btn-secondary recovery-btn" @tap="retryFailedUpload">重试上传</view>
+      </view>
       <view v-for="item in orders" :key="item.id" class="card order-card">
         <view class="row-between align-start">
           <view :class="['badge', `badge-${getStatusType(item.status || '')}`]">
@@ -352,6 +426,12 @@ onUnmounted(() => {
           <view class="progress-percent">
             <text>{{ Math.round(Math.max(0, Math.min(100, Number(item._progress) || 0))) }}%</text>
           </view>
+          <view class="status-steps">
+            <view v-for="(label, index) in ['已接单', '已取件', '配送中', '已完成']" :key="label" class="status-step">
+              <view class="step-dot" :class="{ active: index <= statusStepIndex(item) }">{{ index + 1 }}</view>
+              <text :class="{ active: index <= statusStepIndex(item) }">{{ label }}</text>
+            </view>
+          </view>
         </view>
 
         <view class="message-preview">
@@ -380,9 +460,10 @@ onUnmounted(() => {
           <view
             v-if="runnerNextAction(item).type !== 'none'"
             class="btn-primary action-btn span-2"
+            :class="{ 'disabled-btn': actionLocks[item.order_id || item.id] }"
             @tap="handleRunnerAction(item)"
           >
-            {{ runnerNextAction(item).label }}
+            {{ actionLocks[item.order_id || item.id] ? '提交中...' : runnerNextAction(item).label }}
           </view>
           <view
             v-else-if="item._isReviewed"
@@ -679,4 +760,12 @@ onUnmounted(() => {
   opacity: 0.55;
   pointer-events: none;
 }
+
+.status-steps { display: flex; justify-content: space-between; margin-top: 24rpx; }
+.status-step { display: flex; flex: 1; flex-direction: column; align-items: center; gap: 8rpx; color: #9ca3af; font-size: 22rpx; }
+.step-dot { width: 38rpx; height: 38rpx; border-radius: 50%; background: #e5e7eb; display: flex; align-items: center; justify-content: center; color: #9ca3af; }
+.step-dot.active { background: #2563eb; color: #fff; }
+.status-step text.active { color: #2563eb; font-weight: 600; }
+.recovery-card { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; color: #92400e; background: #fffbeb; }
+.recovery-btn { flex-shrink: 0; padding: 0 24rpx; height: 60rpx; font-size: 24rpx; }
 </style>
