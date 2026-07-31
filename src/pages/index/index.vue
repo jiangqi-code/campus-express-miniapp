@@ -1,11 +1,11 @@
 <template>
   <view class="home-page">
     <view class="hero">
-      <image class="hero-art" src="/static/task-hall/campus-runner-hero.png" mode="aspectFill" />
+      <image class="hero-art" :src="assets.hero" mode="aspectFill" />
       <view class="hero-shade" />
       <view class="hero-top">
         <view class="campus-pill">
-          <image src="/static/task-hall-icons/location.svg" mode="aspectFit" />
+          <image :src="assets.location" mode="aspectFit" />
           <text>广东白云学院</text>
         </view>
         <text class="weather">晴 28°C</text>
@@ -16,7 +16,7 @@
         <text class="hero-title">欢迎回到校园跑腿</text>
       </view>
       <view class="search-box" @tap="goHall">
-        <image src="/static/task-hall-icons/search.svg" mode="aspectFit" />
+        <image :src="assets.search" mode="aspectFit" />
         <text>搜索取件码、地点、物品...</text>
         <view class="search-btn">搜索</view>
       </view>
@@ -35,7 +35,7 @@
 
       <view class="runner-status">
         <view class="status-item"><view class="online-dot" /><text>校园跑腿员在线接单</text></view>
-        <view class="status-item"><image src="/static/task-hall-icons/clock.svg" /><text>响应及时</text></view>
+        <view class="status-item"><image :src="assets.clock" /><text>响应及时</text></view>
       </view>
 
       <view class="section-head">
@@ -52,12 +52,12 @@
             </view>
             <view class="route"><text class="route-mark start">起</text><text>{{ task.pickup_address || '取件地点待确认' }}</text></view>
             <view class="route"><text class="route-mark end">终</text><text>{{ task.delivery_address || '送达地点待确认' }}</text></view>
-            <view class="detail-tip"><image src="/static/task-hall-icons/clock.svg" /><text>查看任务详情</text></view>
+            <view class="detail-tip"><image :src="assets.clock" /><text>查看任务详情</text></view>
           </view>
         </view>
       </scroll-view>
       <view v-else class="task-empty" @tap="goHall">
-        <image src="/static/task-hall-icons/empty.svg" mode="aspectFit" />
+        <image :src="assets.empty" mode="aspectFit" />
         <view><text class="empty-title">{{ loading ? '正在获取推荐任务' : '暂时没有待接任务' }}</text><text class="empty-desc">去任务大厅看看最新需求</text></view>
       </view>
 
@@ -66,7 +66,7 @@
           <text class="coupon-title">新用户专享优惠</text>
           <view class="coupon-row"><text class="coupon-off">首单立减 ¥5</text><text class="coupon-btn">立即发布</text></view>
         </view>
-        <image src="/static/task-hall-icons/mascot.svg" mode="aspectFit" />
+        <image :src="assets.mascot" mode="aspectFit" />
       </view>
 
       <view class="tools-card">
@@ -81,11 +81,11 @@
     </view>
 
     <view class="tabbar">
-      <view class="tab active"><image src="/static/task-hall-icons/location.svg" /><text>首页</text></view>
-      <view class="tab" @tap="goHall"><image src="/static/task-hall-icons/bicycle.svg" /><text>大厅</text></view>
+      <view class="tab active"><image :src="assets.location" /><text>首页</text></view>
+      <view class="tab" @tap="goHall"><image :src="assets.bicycle" /><text>大厅</text></view>
       <view class="publish" @tap="goPublish"><text>＋</text></view>
-      <view class="tab" @tap="go('/pages/message/index')"><image src="/static/task-hall-icons/note.svg" /><text>消息</text></view>
-      <view class="tab" @tap="go('/pages/profile/index')"><image src="/static/task-hall-icons/mascot.svg" /><text>我的</text></view>
+      <view class="tab" @tap="go('/pages/message/index')"><image :src="assets.note" /><text>消息</text></view>
+      <view class="tab" @tap="go('/pages/profile/index')"><image :src="assets.mascot" /><text>我的</text></view>
     </view>
   </view>
 </template>
@@ -97,24 +97,34 @@ import { useAuthStore } from '@/stores/auth'
 import { http } from '@/utils/request'
 import type { TaskItem } from '@/types/models'
 
+const assets = {
+  hero: '/task-hall/campus-runner-hero.png',
+  location: '/task-hall-icons/location.svg',
+  search: '/task-hall-icons/search.svg',
+  clock: '/task-hall-icons/clock.svg',
+  empty: '/task-hall-icons/empty.svg',
+  mascot: '/task-hall-icons/mascot.svg',
+  bicycle: '/task-hall-icons/bicycle.svg',
+  note: '/task-hall-icons/note.svg',
+} as const
 const authStore = useAuthStore()
 const tasks = ref<TaskItem[]>([])
 const loading = ref(true)
 const displayName = computed(() => authStore.profile?.nickname?.trim() || '同学')
 
 const services = [
-  { title: '取快递', desc: '代取件寄件', icon: '/static/task-hall-icons/bicycle.svg', tone: 'mint', path: '/pages/task/publish?type=快递' },
-  { title: '买餐饮', desc: '食堂外卖代购', icon: '/static/task-hall-icons/mascot.svg', tone: 'orange', path: '/pages/task/publish?type=餐饮' },
-  { title: '送文件', desc: '教务资料代跑', icon: '/static/task-hall-icons/note.svg', tone: 'blue', path: '/pages/task/publish?type=文件' },
-  { title: '数码维修', desc: '校园软硬件修', icon: '/static/task-hall-icons/warning.svg', tone: 'violet', path: '/pages/task/publish?type=维修' },
-  { title: '其他代办', desc: '各种跑腿需求', icon: '/static/task-hall-icons/location.svg', tone: 'yellow', path: '/pages/task/publish?type=其他' },
+  { title: '取快递', desc: '代取件寄件', icon: '/task-hall-icons/bicycle.svg', tone: 'mint', path: '/pages/task/publish?type=快递' },
+  { title: '买餐饮', desc: '食堂外卖代购', icon: '/task-hall-icons/mascot.svg', tone: 'orange', path: '/pages/task/publish?type=餐饮' },
+  { title: '送文件', desc: '教务资料代跑', icon: '/task-hall-icons/note.svg', tone: 'blue', path: '/pages/task/publish?type=文件' },
+  { title: '数码维修', desc: '校园软硬件修', icon: '/task-hall-icons/warning.svg', tone: 'violet', path: '/pages/task/publish?type=维修' },
+  { title: '其他代办', desc: '各种跑腿需求', icon: '/task-hall-icons/location.svg', tone: 'yellow', path: '/pages/task/publish?type=其他' },
 ]
 const tools = [
-  { label: '我的订单', icon: '/static/task-hall-icons/note.svg', path: '/pages/order/index' },
-  { label: '我的钱包', icon: '/static/task-hall-icons/mascot.svg', path: '/pages/wallet/index' },
-  { label: '消息中心', icon: '/static/task-hall-icons/warning.svg', path: '/pages/message/index' },
-  { label: '个人中心', icon: '/static/task-hall-icons/location.svg', path: '/pages/profile/index' },
-  { label: '邀请好友', icon: '/static/task-hall-icons/bicycle.svg', path: '/pages/profile/index' },
+  { label: '我的订单', icon: '/task-hall-icons/note.svg', path: '/pages/order/index' },
+  { label: '我的钱包', icon: '/task-hall-icons/mascot.svg', path: '/pages/wallet/index' },
+  { label: '消息中心', icon: '/task-hall-icons/warning.svg', path: '/pages/message/index' },
+  { label: '个人中心', icon: '/task-hall-icons/location.svg', path: '/pages/profile/index' },
+  { label: '邀请好友', icon: '/task-hall-icons/bicycle.svg', path: '/pages/profile/index' },
 ]
 
 const go = (url: string) => uni.navigateTo({ url })
