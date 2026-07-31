@@ -3,7 +3,7 @@
     <view class="card search-card">
       <view class="search-row">
         <view class="input search-input">
-          <image class="ui-icon search-icon" src="/static/task-hall-icons/search.svg" mode="aspectFit" />
+          <image class="ui-icon search-icon" :src="taskHallIcons.search" mode="aspectFit" />
           <input
             v-model="keyword"
             type="text"
@@ -14,7 +14,7 @@
           <text v-if="keyword" class="clear-btn" @tap="clearKeyword">×</text>
         </view>
         <view class="locate-btn" @tap="refreshLocation" :class="{ 'locate-loading': locating }">
-          <image class="ui-icon locate-icon" src="/static/task-hall-icons/location.svg" mode="aspectFit" />
+          <image class="ui-icon locate-icon" :src="taskHallIcons.location" mode="aspectFit" />
         </view>
       </view>
 
@@ -70,7 +70,7 @@
     </view>
 
     <view v-if="errorMsg" class="card error-card">
-      <image class="error-icon" src="/static/task-hall-icons/warning.svg" mode="aspectFit" />
+      <image class="error-icon" :src="taskHallIcons.warning" mode="aspectFit" />
       <view class="error-content">
         <text class="error-title">加载失败</text>
         <text class="error-msg">{{ errorMsg }}</text>
@@ -91,7 +91,7 @@
     <view v-else-if="!errorMsg" class="task-list">
       <view v-if="processedTasks.length === 0" class="card empty-card">
         <view class="empty-box">
-          <image class="empty-illustration" src="/static/task-hall-icons/empty.svg" mode="aspectFit" />
+          <image class="empty-illustration" :src="taskHallIcons.empty" mode="aspectFit" />
           <text class="empty-title">{{ loading ? '正在寻找任务' : '暂时没有匹配的任务' }}</text>
           <text class="empty-text">调整筛选条件，或发布一个新的跑腿需求</text>
           <view class="empty-actions">
@@ -110,7 +110,7 @@
               :class="getCountdownBadgeClass(task)"
               v-if="getRemainingSeconds(task) > 0"
             >
-              <image class="badge-icon" src="/static/task-hall-icons/clock.svg" mode="aspectFit" />
+              <image class="badge-icon" :src="taskHallIcons.clock" mode="aspectFit" />
               {{ formatCountdown(getRemainingSeconds(task)) }}
             </view>
             <view class="badge badge-danger" v-else>已超时</view>
@@ -144,22 +144,22 @@
         <view class="task-meta row-between">
           <view class="row gap-16">
             <view class="meta-item">
-              <image class="meta-icon" src="/static/task-hall-icons/distance.svg" mode="aspectFit" />
+              <image class="meta-icon" :src="taskHallIcons.distance" mode="aspectFit" />
               <text class="meta-text">{{ formatDistance(task.distance) }}</text>
             </view>
             <view class="meta-item">
-              <image class="meta-icon" src="/static/task-hall-icons/bicycle.svg" mode="aspectFit" />
+              <image class="meta-icon" :src="taskHallIcons.bicycle" mode="aspectFit" />
               <text class="meta-text">约{{ estimateETA(task.distance) }}</text>
             </view>
             <view class="meta-item">
-              <image class="meta-icon" src="/static/task-hall-icons/clock.svg" mode="aspectFit" />
+              <image class="meta-icon" :src="taskHallIcons.clock" mode="aspectFit" />
               <text class="meta-text">{{ formatRelativeTime(task.created_at) }}</text>
             </view>
           </view>
         </view>
 
         <view v-if="task.remark" class="remark-section">
-          <image class="remark-icon" src="/static/task-hall-icons/note.svg" mode="aspectFit" />
+          <image class="remark-icon" :src="taskHallIcons.note" mode="aspectFit" />
           <text class="remark-text">{{ task.remark }}</text>
         </view>
 
@@ -248,6 +248,16 @@ interface TaskWithComputed extends TaskItem {
 const authStore = useAuthStore()
 const messageStore = useMessageStore()
 const unreadCount = computed(() => messageStore.unreadCount)
+const taskHallIcons = {
+  search: '/task-hall-icons/search.svg',
+  location: '/task-hall-icons/location.svg',
+  warning: '/task-hall-icons/warning.svg',
+  empty: '/task-hall-icons/empty.svg',
+  clock: '/task-hall-icons/clock.svg',
+  distance: '/task-hall-icons/distance.svg',
+  bicycle: '/task-hall-icons/bicycle.svg',
+  note: '/task-hall-icons/note.svg',
+} as const
 
 const goPublish = () => {
   uni.navigateTo({ url: '/pages/task/publish' })
