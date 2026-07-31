@@ -763,7 +763,7 @@ onBeforeUnmount(() => {
   color: #4e5969;
   font-size: 22rpx;
 }
-.filter-chip.active { border-color: #bed3ff; background: #eef3ff; color: #165dff; font-weight: 600; }
+.filter-chip.active { border-color: #bed3ff; background: #eef3ff; color: #3b82f6; font-weight: 600; }
 
 .type-scroll {
   white-space: nowrap;
@@ -1144,7 +1144,7 @@ onBeforeUnmount(() => {
   width: 112rpx;
   height: 112rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, #165dff 0%, #4080ff 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1166,7 +1166,7 @@ onBeforeUnmount(() => {
 }
 
 .fab-label {
-  color: #165dff;
+  color: #3b82f6;
   font-size: 22rpx;
   font-weight: 600;
   background: rgba(255, 255, 255, 0.95);
@@ -1174,4 +1174,7 @@ onBeforeUnmount(() => {
   border-radius: 999rpx;
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.08);
 }
+
+/* Commercial task hall hierarchy */
+.search-card{border-radius:40rpx;background:linear-gradient(145deg,#fff,#f9fbff);box-shadow:0 6rpx 28rpx rgba(59,130,246,.08)}.type-tag.active,.filter-chip.active{color:#fff;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-color:transparent;box-shadow:0 6rpx 16rpx rgba(99,102,241,.2)}.task-card{border:0;border-radius:32rpx;box-shadow:0 4rpx 24rpx rgba(0,0,0,.06)}.task-card:active{transform:scale(.992)}.task-price,.price{color:#f59e0b!important;font-size:48rpx!important;font-weight:700}.accept-btn,.grab-btn{background:linear-gradient(135deg,#f59e0b,#f97316)!important;box-shadow:0 10rpx 22rpx rgba(245,158,11,.25)!important}.remark-box{background:#f8fafc;border-left:6rpx solid #8b5cf6}.list-footer{color:#6b7280}
 </style>

@@ -42,10 +42,10 @@ const hasUnsavedChanges = computed(() => Boolean(
 const mapLatitude = computed(() => form.pickup?.latitude || form.delivery?.latitude || 23.1065)
 const mapLongitude = computed(() => form.pickup?.longitude || form.delivery?.longitude || 113.3304)
 const mapMarkers = computed(() => [
-  ...(form.pickup ? [{ id: 1, latitude: form.pickup.latitude, longitude: form.pickup.longitude, title: '取件点', label: { content: '取', color: '#ffffff', bgColor: '#00b42a', padding: 5, borderRadius: 12 } }] : []),
-  ...(form.delivery ? [{ id: 2, latitude: form.delivery.latitude, longitude: form.delivery.longitude, title: '送达点', label: { content: '送', color: '#ffffff', bgColor: '#f53f3f', padding: 5, borderRadius: 12 } }] : []),
+  ...(form.pickup ? [{ id: 1, latitude: form.pickup.latitude, longitude: form.pickup.longitude, title: '取件点', label: { content: '取', color: '#ffffff', bgColor: '#10b981', padding: 5, borderRadius: 12 } }] : []),
+  ...(form.delivery ? [{ id: 2, latitude: form.delivery.latitude, longitude: form.delivery.longitude, title: '送达点', label: { content: '送', color: '#ffffff', bgColor: '#ef4444', padding: 5, borderRadius: 12 } }] : []),
 ])
-const mapPolyline = computed(() => form.pickup && form.delivery ? [{ points: [form.pickup, form.delivery], color: '#165dff', width: 4, dottedLine: true }] : [])
+const mapPolyline = computed(() => form.pickup && form.delivery ? [{ points: [form.pickup, form.delivery], color: '#3b82f6', width: 4, dottedLine: true }] : [])
 
 function safeShowLoading(title = '加载中...') {
   if (loadingCount.value === 0) {
@@ -300,7 +300,7 @@ onBackPress(() => {
     title: '放弃未保存内容？',
     content: '离开后，当前填写的任务信息将不会保存。',
     confirmText: '放弃离开',
-    confirmColor: '#f53f3f',
+    confirmColor: '#ef4444',
     success: (result) => {
       if (result.confirm) {
         allowLeave.value = true
@@ -426,7 +426,7 @@ onBeforeUnmount(() => { if (typeof window !== 'undefined') window.removeEventLis
 }
 
 .form-section-title { color: #1d2129; font-size: 30rpx; font-weight: 700; }
-.swap-button { width: 240rpx; height: 68rpx; margin: 20rpx auto; border-radius: 999rpx; background: #eef3ff; color: #165dff; font-size: 24rpx; }
+.swap-button { width: 240rpx; height: 68rpx; margin: 20rpx auto; border-radius: 999rpx; background: #eef3ff; color: #3b82f6; font-size: 24rpx; }
 .location-map { width: 100%; height: 360rpx; overflow: hidden; border-radius: 18rpx; }
 .map-summary { display: flex; flex-direction: column; gap: 6rpx; margin-top: 12rpx; color: #86909c; font-size: 22rpx; }
 .field-hint { margin-top: 8rpx; color: #86909c; font-size: 22rpx; }
@@ -511,4 +511,7 @@ onBeforeUnmount(() => { if (typeof window !== 'undefined') window.removeEventLis
   .page-shell { padding-right: 16rpx; padding-left: 16rpx; }
   .form-section { padding: 20rpx; }
 }
+
+/* Grouped publishing flow */
+.publish-page{background:#f2f4f8}.form-card,.location-card,.upload-card{border:0;border-radius:40rpx;box-shadow:0 4rpx 24rpx rgba(0,0,0,.05)}.form-section{margin-bottom:24rpx;padding:28rpx;background:#fff;border:2rpx solid #e7eaf0;border-radius:32rpx}.field-label{color:#1a1a2e;font-size:30rpx}.input,.textarea,.picker-like{border-color:#e7eaf0;background:#f8fafc}.input:focus,.textarea:focus{border-color:#3b82f6}.location-map{height:380rpx!important;border:8rpx solid #fff;border-radius:32rpx!important;box-shadow:0 4rpx 20rpx rgba(15,23,42,.08)}.map-summary{padding:20rpx 24rpx;color:#6b7280!important;background:#f5f3ff;border-radius:20rpx}.submit-btn{background:linear-gradient(135deg,#3b82f6,#8b5cf6);box-shadow:0 12rpx 28rpx rgba(99,102,241,.26)}
 </style>

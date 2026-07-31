@@ -108,8 +108,8 @@
                         "navigationBarTextStyle":  "black",
                         "navigationBarTitleText":  "校园跑腿",
                         "navigationBarBackgroundColor":  "#ffffff",
-                        "backgroundColor":  "#f6f7fb",
-                        "backgroundColorTop":  "#f6f7fb",
-                        "backgroundColorBottom":  "#f6f7fb"
+                        "backgroundColor":  "#F2F4F8",
+                        "backgroundColorTop":  "#F2F4F8",
+                        "backgroundColorBottom":  "#F2F4F8"
                     }
 }

@@ -68,7 +68,7 @@ const markers = computed(() => {
       title: '跑腿员（模拟位置）',
       width: 30,
       height: 30,
-      callout: { content: '跑腿员 · 模拟位置', display: 'ALWAYS', padding: 8, borderRadius: 12, bgColor: '#ff7d00', color: '#ffffff' },
+      callout: { content: '跑腿员 · 模拟位置', display: 'ALWAYS', padding: 8, borderRadius: 12, bgColor: '#f59e0b', color: '#ffffff' },
     })
   }
   return points
@@ -82,7 +82,7 @@ const routePolyline = computed(() => {
       { latitude: Number(current.pickup_lat), longitude: Number(current.pickup_lng) },
       { latitude: Number(current.delivery_lat), longitude: Number(current.delivery_lng) },
     ],
-    color: '#165dff',
+    color: '#3b82f6',
     width: 5,
     arrowLine: true,
   }]
@@ -712,7 +712,7 @@ onBeforeUnmount(() => { if (runnerLocationTimer) clearInterval(runnerLocationTim
 .route-summary > view { display: flex; flex-direction: column; gap: 6rpx; }
 .route-summary-label { color: #86909c; font-size: 22rpx; }
 .route-summary-value { color: #1d2129; font-size: 28rpx; font-weight: 700; }
-.navigation-button { grid-column: 1 / -1; height: 72rpx; border-radius: 14rpx; background: #eef3ff; color: #165dff; font-size: 26rpx; font-weight: 600; }
+.navigation-button { grid-column: 1 / -1; height: 72rpx; border-radius: 14rpx; background: #eef3ff; color: #3b82f6; font-size: 26rpx; font-weight: 600; }
 
 .legend-item {
   display: flex;
@@ -733,7 +733,7 @@ onBeforeUnmount(() => { if (runnerLocationTimer) clearInterval(runnerLocationTim
 .legend-dot.delivery {
   background: #16a34a;
 }
-.legend-dot.runner { background: #ff7d00; }
+.legend-dot.runner { background: #f59e0b; }
 
 .user-block {
   display: flex;
@@ -791,9 +791,9 @@ onBeforeUnmount(() => { if (runnerLocationTimer) clearInterval(runnerLocationTim
   font-weight: 500;
 }
 
-.identity-tag { padding: 4rpx 12rpx; border-radius: 999rpx; background: #eef3ff; color: #165dff; font-size: 21rpx; }
-.runner-tag { background: #e8ffea; color: #00b42a; }
-.live-status { color: #ff7d00; font-size: 21rpx; }
+.identity-tag { padding: 4rpx 12rpx; border-radius: 999rpx; background: #eef3ff; color: #3b82f6; font-size: 21rpx; }
+.runner-tag { background: #e8ffea; color: #10b981; }
+.live-status { color: #f59e0b; font-size: 21rpx; }
 .contact-line { color: #4e5969; font-size: 24rpx; }
 
 .divider-line {
@@ -831,4 +831,7 @@ onBeforeUnmount(() => { if (runnerLocationTimer) clearInterval(runnerLocationTim
 .safe-bottom {
   height: env(safe-area-inset-bottom);
 }
+
+/* Commercial task detail */
+.detail-page{background:#f2f4f8}.hero-card,.detail-card,.runner-card,.timeline-card{border:0;border-radius:40rpx;box-shadow:0 4rpx 24rpx rgba(0,0,0,.06)}.status-card{background:linear-gradient(135deg,#eff6ff,#f5f3ff);border:2rpx solid #dbeafe}.detail-map{border:8rpx solid #fff;border-radius:32rpx!important;box-shadow:0 4rpx 20rpx rgba(15,23,42,.08)}.timeline-item:before,.timeline-dot{background:#3b82f6;box-shadow:0 0 0 8rpx #dbeafe}.runner-avatar{border:4rpx solid #fff;box-shadow:0 6rpx 18rpx rgba(99,102,241,.16)}.price,.amount{color:#f59e0b!important;font-size:48rpx!important}.accept-button,.bottom-primary,.btn-primary{background:linear-gradient(135deg,#f59e0b,#f97316);box-shadow:0 12rpx 28rpx rgba(245,158,11,.24)}
 </style>

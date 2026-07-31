@@ -17,7 +17,7 @@
       refresher-enabled :refresher-triggered="pRefreshing" @refresherrefresh="loadPublished">
       <view v-if="pLoading && publishedList.length === 0" class="empty-box">加载中...</view>
       <view v-else-if="publishedList.length === 0" class="card empty-card">
-        <text class="empty-icon">📦</text>
+        <view class="empty-icon-svg"><uni-icons type="box" size="32" color="#8B5CF6" /></view>
         <text class="empty-text">暂无发布的订单</text>
         <view class="go-btn" @tap="goPublish">去发布任务</view>
       </view>
@@ -42,7 +42,7 @@
       refresher-enabled :refresher-triggered="tRefreshing" @refresherrefresh="loadTaken">
       <view v-if="tLoading && takenList.length === 0" class="empty-box">加载中...</view>
       <view v-else-if="takenList.length === 0" class="card empty-card">
-        <text class="empty-icon">🛵</text>
+        <view class="empty-icon-svg"><uni-icons type="navigate-filled" size="32" color="#3B82F6" /></view>
         <text class="empty-text">暂无已接单订单</text>
         <view class="go-btn" @tap="goHall">去任务大厅抢单</view>
       </view>
@@ -73,6 +73,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
+import UniIcons from '@dcloudio/uni-ui/lib/uni-icons/uni-icons.vue'
 import AppTabBar from '@/components/AppTabBar.vue'
 import { useMessageStore } from '@/stores/message'
 import { http } from '@/utils/request'
@@ -238,4 +239,7 @@ onShow(() => { loadPublished(); loadTaken() })
   background: #eef2ff; color: #165dff;
 }
 .badge-default { background: #eef2ff; color: #165dff; }
+
+/* Commercial order center */
+.order-page{background:#f2f4f8}.order-tabs{margin:20rpx 24rpx 24rpx;padding:8rpx;background:#fff;border-radius:24rpx;box-shadow:0 4rpx 20rpx rgba(15,23,42,.05)}.order-tab{padding:22rpx 16rpx;border-radius:18rpx}.order-tab.active{background:linear-gradient(135deg,#eff6ff,#f5f3ff)}.order-tab.active .tab-label{color:#3b82f6!important}.tab-underline{background:linear-gradient(90deg,#3b82f6,#8b5cf6)}.order-card{border:0;border-radius:32rpx;box-shadow:0 4rpx 24rpx rgba(0,0,0,.06)}.address-section{background:#f8fafc;border:2rpx solid #edf0f4;border-radius:24rpx}.adot.green{background:#10b981}.adot.red{background:#ef4444}.st-pending{background:#fffbeb;color:#d97706}.st-accepted{background:#eff6ff;color:#2563eb}.st-delivering{background:#ecfdf5;color:#059669}.st-completed{background:#f5f3ff;color:#7c3aed}.empty-icon-svg{display:flex;align-items:center;justify-content:center;width:112rpx;height:112rpx;margin:0 auto 28rpx;border-radius:36rpx;background:linear-gradient(135deg,#eff6ff,#f5f3ff)}
 </style>
