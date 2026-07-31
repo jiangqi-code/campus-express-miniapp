@@ -37,7 +37,7 @@ const registerForm = reactive({
 const titleText = computed(() => (currentTab.value === 'login' ? '欢迎回来' : '创建校园跑腿账号'))
 
 function goHomeByRole() {
-  uni.reLaunch({ url: '/pages/task/hall' })
+  uni.reLaunch({ url: '/pages/index/index' })
 }
 
 function validateLogin() {
