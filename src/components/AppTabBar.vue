@@ -10,7 +10,7 @@
       >
         <view class="tabbar-icon-wrap">
           <view v-if="item.key === 'publish'" class="publish-button">
-            <uni-icons type="plusempty" size="30" color="#FFFFFF" />
+            <uni-icons type="plusempty" size="28" color="#FFFFFF" />
           </view>
           <uni-icons
             v-else
@@ -74,9 +74,26 @@ function handleTap(item: TabItem) {
 .tabbar-icon-wrap { position: relative; display: flex; width: 48rpx; height: 48rpx; align-items: center; justify-content: center; }
 .tabbar-label { font-size: 20rpx; line-height: 1.2; }
 .tabbar-item.active { color: #52c41a; font-weight: 700; }
-.tabbar-item.publish { padding-top: 0; }
-.publish-button { display: flex; width: 88rpx; height: 88rpx; margin-top: -34rpx; align-items: center; justify-content: center; border: 8rpx solid #ffffff; border-radius: 50%; background: #68c995; box-shadow: 0 8rpx 20rpx rgba(65, 174, 118, 0.3); box-sizing: border-box; }
+.tabbar-item.publish { padding-top: 0; transform: none; }
+.publish-button {
+  position: absolute;
+  top: -48rpx;
+  display: flex;
+  width: 112rpx;
+  height: 112rpx;
+  align-items: center;
+  justify-content: center;
+  border: 8rpx solid #ffffff;
+  border-radius: 50%;
+  background: #52c41a;
+  box-shadow: 0 10rpx 24rpx rgba(82, 196, 26, 0.34);
+  box-sizing: border-box;
+  transition: transform 120ms ease-out, box-shadow 120ms ease-out;
+}
+.publish:active { transform: none; }
+.publish:active .publish-button { transform: scale(0.9); box-shadow: 0 5rpx 14rpx rgba(82, 196, 26, 0.26); }
+.publish-button :deep(.uni-icons) { font-weight: 700; line-height: 1; }
 .publish .tabbar-label { height: 0; margin: 0; overflow: hidden; opacity: 0; }
 .tabbar-badge { position: absolute; top: -8rpx; right: -18rpx; min-width: 32rpx; height: 32rpx; padding: 0 8rpx; border: 4rpx solid #fff; border-radius: 999rpx; background: #ef4444; color: #fff; font-size: 20rpx; font-weight: 700; line-height: 28rpx; text-align: center; box-sizing: border-box; }
-@media (prefers-reduced-motion: reduce) { .tabbar-item { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .tabbar-item, .publish-button { transition: none; } }
 </style>
