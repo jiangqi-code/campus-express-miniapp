@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-import { onBackPress } from '@dcloudio/uni-app'
+import { onBackPress, onShow } from '@dcloudio/uni-app'
 import { ITEM_TYPES } from '@/config'
 import { useAuthStore } from '@/stores/auth'
 import { useMessageStore } from '@/stores/message'
@@ -13,6 +13,8 @@ import AppTabBar from '@/components/AppTabBar.vue'
 const authStore = useAuthStore()
 const messageStore = useMessageStore()
 const unreadCount = computed(() => messageStore.unreadCount)
+const coupons = ref<any[]>([])
+const selectedCouponId = ref('')
 
 const form = reactive({
   pickup: null as LocationPoint | null,
@@ -40,6 +42,31 @@ const feePreview = computed(() => {
   return base + urgent + distanceFee.value
 })
 const tipValue = computed(() => Number(form.tip || 0))
+const availableCoupons = computed(() => coupons.value.filter((item) => Number(item.coupon?.min_order_amount || 0) <= feePreview.value))
+const discountFor = (item: any) => {
+  const coupon = item.coupon
+  const raw = coupon.type === 'CASH' ? Number(coupon.value) : feePreview.value * Number(coupon.value) / 100
+  const capped = coupon.type === 'DISCOUNT' && Number(coupon.max_discount) > 0 ? Math.min(raw, Number(coupon.max_discount)) : raw
+  return Math.min(feePreview.value, Math.round(capped * 100) / 100)
+}
+const couponDiscount = computed(() => {
+  const item = availableCoupons.value.find((entry) => entry.id === selectedCouponId.value)
+  return item ? discountFor(item) : 0
+})
+const payableTotal = computed(() => Math.max(0, feePreview.value + tipValue.value - couponDiscount.value))
+const couponOptions = computed(() => ['不使用优惠券', ...availableCoupons.value.map((item) => `${item.coupon.name}（省 ¥${discountFor(item).toFixed(2)}）`)])
+const couponIndex = computed(() => Math.max(0, availableCoupons.value.findIndex((item) => item.id === selectedCouponId.value) + 1))
+async function loadCoupons() {
+  try {
+    const result = await http.get<any>('/coupons/my', { page: 1, page_size: 100, status: 'UNUSED' })
+    coupons.value = (result?.data ?? result)?.list ?? []
+    selectedCouponId.value = availableCoupons.value.slice().sort((a, b) => discountFor(b) - discountFor(a))[0]?.id || ''
+  } catch { coupons.value = [] }
+}
+function selectCoupon(event: any) {
+  const index = Number(event.detail.value)
+  selectedCouponId.value = index > 0 ? availableCoupons.value[index - 1]?.id || '' : ''
+}
 const hasUnsavedChanges = computed(() => Boolean(
   form.pickup || form.delivery || form.remark.trim() || tipValue.value > 0 || imageList.value.length || uploadStates.value.length,
 ))
@@ -285,6 +312,7 @@ async function submitTask() {
       remark: form.remark.trim(),
       images: imageList.value,
       images_json: JSON.stringify(imageList.value),
+      user_coupon_id: selectedCouponId.value || null,
     })
     uni.showToast({ title: '发布成功', icon: 'success' })
     allowLeave.value = true
@@ -323,6 +351,7 @@ function beforeUnload(event: BeforeUnloadEvent) {
 }
 
 onMounted(() => { if (typeof window !== 'undefined') window.addEventListener('beforeunload', beforeUnload) })
+onShow(loadCoupons)
 onBeforeUnmount(() => { if (typeof window !== 'undefined') window.removeEventListener('beforeunload', beforeUnload) })
 </script>
 
@@ -408,8 +437,13 @@ onBeforeUnmount(() => { if (typeof window !== 'undefined') window.removeEventLis
           <text class="primary">{{ formatMoney(feePreview) }}</text>
         </view>
         <view class="row-between fee-total">
+          <text class="muted">优惠券</text>
+          <picker :value="couponIndex" :range="couponOptions" @change="selectCoupon"><text class="coupon-picker">{{ couponOptions[couponIndex] }}</text></picker>
+        </view>
+        <view v-if="couponDiscount > 0" class="row-between fee-total coupon-saving"><text>优惠减免</text><text>- {{ formatMoney(couponDiscount) }}</text></view>
+        <view class="row-between fee-total">
           <text class="muted">总额（含小费）</text>
-          <text class="success">{{ formatMoney(Number(feePreview) + Number(form.tip || 0)) }}</text>
+          <text class="success">{{ formatMoney(payableTotal) }}</text>
         </view>
       </view>
 
@@ -505,6 +539,8 @@ onBeforeUnmount(() => { if (typeof window !== 'undefined') window.removeEventLis
 .fee-total {
   margin-top: 18rpx;
 }
+.coupon-picker { color: #389e0d; font-size: 24rpx; }
+.coupon-saving { color: #389e0d; }
 
 .submit-btn {
   margin-top: 28rpx;

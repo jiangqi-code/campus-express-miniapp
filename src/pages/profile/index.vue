@@ -17,6 +17,7 @@ const menus = [
   { label: '个人资料', desc: '头像、昵称、手机号和学号', icon: 'person', url: '/pages/profile/edit' },
   { label: '我的钱包', desc: '余额、充值和资金管理', icon: 'wallet', url: '/pages/wallet/index' },
   { label: '钱包流水', desc: '查看收入和支出记录', icon: 'list', url: '/pages/wallet/logs' },
+  { label: '我的优惠券', desc: '领取并查看可用优惠券', icon: 'gift', url: '/pages/coupon/index' },
   { label: '跑腿员申请', desc: '提交身份资料并查看审核状态', icon: 'auth', url: '/pages/runner/apply' },
   { label: '我发布的订单', desc: '', icon: 'paperplane', url: '/pages/order/published' },
   { label: '我接单的订单', desc: '', icon: 'navigate', url: '/pages/order/taken' },
@@ -45,7 +46,7 @@ onLoad(async () => { await auth.bootstrap(); if (!auth.isLogin) return uni.reLau
         <view class="core-info"><view class="section-title">{{ auth.profile?.nickname || '同学' }}</view><view class="section-desc">{{ roleText }} · 信用分 {{ auth.profile?.creditScore || 0 }}</view></view>
         <uni-icons type="right" size="20" color="#9ca3af" />
       </view>
-      <view class="card menu-card"><view v-for="item in menus" :key="item.label" class="menu-item" @tap="go(item.url)"><view class="menu-icon"><uni-icons :type="item.icon" size="22" color="#3B82F6" /></view><view class="menu-copy"><text class="menu-label">{{ item.label }}</text><text v-if="item.desc" class="menu-desc">{{ item.desc }}</text></view><uni-icons type="right" size="18" color="#c0c4cc" /></view></view>
+      <view class="card menu-card"><view v-for="item in menus" :key="item.label" class="menu-item" @tap="go(item.url)"><view class="menu-icon"><uni-icons :type="item.icon" size="22" color="#52C41A" /></view><view class="menu-copy"><text class="menu-label">{{ item.label }}</text><text v-if="item.desc" class="menu-desc">{{ item.desc }}</text></view><uni-icons type="right" size="18" color="#c0c4cc" /></view></view>
       <view class="btn-danger logout" @tap="logout">退出登录</view>
     </template>
     <!-- #ifdef H5 -->

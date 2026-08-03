@@ -12,6 +12,7 @@
     { "path": "pages/profile/edit", "style": { "navigationBarTitleText": "个人资料" } },
     { "path": "pages/wallet/index", "style": { "navigationBarTitleText": "我的钱包" } },
     { "path": "pages/wallet/logs", "style": { "navigationBarTitleText": "钱包流水", "enablePullDownRefresh": true } },
+    { "path": "pages/coupon/index", "style": { "navigationBarTitleText": "优惠券中心" } },
     { "path": "pages/runner/apply", "style": { "navigationBarTitleText": "跑腿员申请" } },
     { "path": "pages/order/chat", "style": { "navigationBarTitleText": "订单聊天" } },
     { "path": "pages/order/published", "style": { "navigationBarTitleText": "我的发布", "enablePullDownRefresh": true } },
