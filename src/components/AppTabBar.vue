@@ -59,24 +59,24 @@ function handleTap(item: TabItem) {
 .app-tabbar {
   position: fixed;
   z-index: 999;
-  right: 20rpx;
-  bottom: calc(14rpx + env(safe-area-inset-bottom));
-  left: 20rpx;
-  border: 2rpx solid rgba(82, 196, 26, 0.08);
-  border-radius: 58rpx;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 12rpx 36rpx rgba(36, 69, 51, 0.16);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 2rpx solid #eef3ec;
+  background: #ffffff;
+  box-shadow: 0 -8rpx 24rpx rgba(41, 78, 54, 0.08);
 }
 
-.tabbar-inner { display: grid; height: 108rpx; padding: 0 18rpx; grid-template-columns: repeat(5, 1fr); align-items: center; }
+.tabbar-inner { display: grid; height: 104rpx; padding: 0 24rpx; grid-template-columns: repeat(5, 1fr); align-items: center; }
 .tabbar-item { position: relative; display: flex; min-width: 0; min-height: 88rpx; align-items: center; justify-content: center; flex-direction: column; gap: 4rpx; color: #8a928c; transition: transform 150ms ease; }
 .tabbar-item:active { transform: scale(0.96); }
 .tabbar-icon-wrap { position: relative; display: flex; width: 48rpx; height: 48rpx; align-items: center; justify-content: center; }
 .tabbar-label { font-size: 20rpx; line-height: 1.2; }
 .tabbar-item.active { color: #52c41a; font-weight: 700; }
-.tabbar-item.publish { padding-top: 6rpx; }
-.publish-button { display: flex; width: 100rpx; height: 100rpx; margin-top: -54rpx; align-items: center; justify-content: center; border: 8rpx solid #f6f9f3; border-radius: 50%; background: #52c41a; box-shadow: 0 10rpx 24rpx rgba(82, 196, 26, 0.32); box-sizing: border-box; }
-.publish .tabbar-label { margin-top: 1rpx; color: #52c41a; font-weight: 700; }
+.tabbar-item.publish { padding-top: 0; }
+.publish-button { display: flex; width: 88rpx; height: 88rpx; margin-top: -34rpx; align-items: center; justify-content: center; border: 8rpx solid #ffffff; border-radius: 50%; background: #68c995; box-shadow: 0 8rpx 20rpx rgba(65, 174, 118, 0.3); box-sizing: border-box; }
+.publish .tabbar-label { height: 0; margin: 0; overflow: hidden; opacity: 0; }
 .tabbar-badge { position: absolute; top: -8rpx; right: -18rpx; min-width: 32rpx; height: 32rpx; padding: 0 8rpx; border: 4rpx solid #fff; border-radius: 999rpx; background: #ef4444; color: #fff; font-size: 20rpx; font-weight: 700; line-height: 28rpx; text-align: center; box-sizing: border-box; }
 @media (prefers-reduced-motion: reduce) { .tabbar-item { transition: none; } }
 </style>

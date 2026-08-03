@@ -217,13 +217,6 @@
       <view class="list-bottom-space"></view>
     </view>
 
-    <view class="fab-wrapper" role="button" aria-label="发布任务" @tap="goPublish">
-      <view class="fab-button">
-        <text class="fab-icon">+</text>
-      </view>
-      <view class="fab-label">发布</view>
-    </view>
-
     <!-- #ifdef H5 -->
     <AppTabBar current="hall" :unread-message-count="unreadCount" />
     <!-- #endif -->
@@ -272,7 +265,7 @@ const taskHallIcons = {
 } as const
 
 const goPublish = () => {
-  uni.navigateTo({ url: '/pages/task/publish' })
+  uni.switchTab({ url: '/pages/task/publish' })
 }
 
 const loading = ref(false)
@@ -697,61 +690,62 @@ onBeforeUnmount(() => {
 <style lang="scss" scoped>
 .hall-page {
   min-height: 100vh;
-  padding: 20rpx 24rpx 170rpx;
-  background: #f5f7f6;
-  color: #202720;
+  padding: 0 24rpx 150rpx;
+  background: #f7faf6;
+  color: #293630;
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
 .hall-hero {
   position: relative;
-  height: 286rpx;
-  margin-bottom: 20rpx;
+  height: 350rpx;
+  margin: 0 -24rpx -42rpx;
   overflow: hidden;
-  border-radius: 30rpx;
-  background: #dff2dc;
-  box-shadow: 0 14rpx 36rpx rgba(42, 91, 48, 0.13);
+  border-radius: 0 0 44rpx 44rpx;
+  background: #7fd6f3;
+  box-shadow: none;
 }
 .hero-art { position: absolute; inset: 0; width: 100%; height: 100%; }
 .hero-shade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(22, 79, 35, 0.8), rgba(30, 100, 45, 0.3) 52%, rgba(30, 100, 45, 0) 76%);
+  background: linear-gradient(90deg, rgba(31, 116, 81, 0.52), rgba(73, 173, 132, 0.12) 60%, rgba(255, 255, 255, 0) 82%);
 }
 .hero-copy {
   position: absolute;
   z-index: 2;
-  left: 32rpx;
-  top: 50%;
+  left: 36rpx;
+  top: 42%;
   display: flex;
-  width: 330rpx;
+  width: calc(100% - 72rpx);
   flex-direction: column;
   transform: translateY(-50%);
 }
-.hero-title { color: #fff; font-size: 40rpx; font-weight: 700; line-height: 1.25; }
+.hero-title { display: block; width: 100%; color: #fff; font-size: 38rpx; font-weight: 800; line-height: 1.25; white-space: nowrap; }
 .hero-desc { margin-top: 12rpx; color: rgba(255, 255, 255, 0.92); font-size: 24rpx; }
 
 .search-card {
   position: relative;
   z-index: 3;
-  margin-bottom: 20rpx;
-  padding: 22rpx;
+  margin-bottom: 22rpx;
+  padding: 20rpx 20rpx 22rpx;
   border: 0;
-  border-radius: 26rpx;
+  border-radius: 34rpx;
   background: #fff;
-  box-shadow: 0 6rpx 24rpx rgba(30, 52, 35, 0.06);
+  box-shadow: 0 12rpx 34rpx rgba(42, 76, 57, 0.09);
 }
-.search-row { display: flex; align-items: center; gap: 14rpx; margin-bottom: 18rpx; }
+.search-row { display: flex; align-items: center; gap: 14rpx; margin-bottom: 22rpx; }
 .search-input {
   display: flex;
   flex: 1;
-  height: 76rpx;
+  height: 82rpx;
   align-items: center;
   gap: 12rpx;
   padding: 0 22rpx;
   border: 0;
   border-radius: 38rpx;
-  background: #f3f6f4;
+  border: 2rpx solid #e7f0e6;
+  background: #fbfdfb;
 }
 .search-input input { flex: 1; color: #202720; font-size: 26rpx; }
 .search-icon { width: 30rpx; height: 30rpx; }
@@ -771,30 +765,31 @@ onBeforeUnmount(() => {
   height: 76rpx;
   align-items: center;
   justify-content: center;
-  border-radius: 24rpx;
-  background: #eaf7e8;
+  border-radius: 50%;
+  background: #eaf7ec;
   transition: transform 120ms ease-out, background-color 120ms ease-out;
 }
 .locate-btn:active { transform: scale(0.94); background: #dcefd9; }
 .locate-btn.locate-loading { opacity: 0.55; }
 .locate-icon { width: 36rpx; height: 36rpx; }
 
-.type-scroll { margin-bottom: 16rpx; white-space: nowrap; }
+.type-scroll { margin: 0 -4rpx 18rpx; white-space: nowrap; }
 .type-list { display: inline-flex; gap: 10rpx; padding: 2rpx 0; }
 .type-tag {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 12rpx 24rpx;
-  border-radius: 22rpx;
-  background: #f3f5f4;
+  min-width: 104rpx;
+  padding: 13rpx 24rpx;
+  border-radius: 24rpx;
+  background: #f3f7f3;
   color: #667067;
   font-size: 24rpx;
   transition: color 140ms ease-out, background-color 140ms ease-out, transform 140ms ease-out;
 }
-.type-tag.active { color: #278c38; background: #e7f6e5; font-weight: 700; }
+.type-tag.active { color: #278c38; background: #dff3e4; font-weight: 700; box-shadow: inset 0 0 0 2rpx rgba(82,196,26,.12); }
 .type-tag:active { transform: scale(0.96); }
-.filter-groups { display: flex; flex-direction: column; gap: 10rpx; margin-bottom: 14rpx; }
+.filter-groups { display: flex; padding: 14rpx 16rpx; flex-direction: column; gap: 10rpx; margin-bottom: 14rpx; border-radius: 22rpx; background: #f8fbf8; }
 .filter-group { display: flex; align-items: center; gap: 12rpx; }
 .filter-title { width: 58rpx; flex-shrink: 0; color: #929a94; font-size: 21rpx; }
 .filter-options { display: flex; min-width: 0; flex: 1; gap: 4rpx; overflow-x: auto; }
@@ -807,7 +802,7 @@ onBeforeUnmount(() => {
   transition: color 140ms ease-out, background-color 140ms ease-out;
 }
 .filter-chip.active { color: #278c38; background: #edf8eb; font-weight: 600; }
-.sort-row { display: flex; gap: 34rpx; padding-top: 16rpx; border-top: 2rpx solid #f0f2f1; }
+.sort-row { display: flex; justify-content: space-around; gap: 24rpx; padding-top: 17rpx; border-top: 2rpx solid #edf2ec; }
 .sort-item { display: flex; align-items: center; gap: 4rpx; color: #89918b; font-size: 24rpx; }
 .sort-item.active { color: #278c38; font-weight: 700; }
 .sort-item.active::after { content: ''; width: 8rpx; height: 8rpx; border-radius: 50%; background: #52c41a; }
@@ -848,12 +843,13 @@ onBeforeUnmount(() => {
 .task-list { min-height: 40vh; }
 .task-card {
   position: relative;
-  margin-bottom: 18rpx;
-  padding: 24rpx;
+  margin-bottom: 20rpx;
+  padding: 26rpx;
   border: 0;
-  border-radius: 24rpx;
+  border: 2rpx solid rgba(82, 196, 26, 0.07);
+  border-radius: 30rpx;
   background: #fff;
-  box-shadow: 0 5rpx 22rpx rgba(30, 52, 35, 0.055);
+  box-shadow: 0 8rpx 26rpx rgba(36, 69, 51, 0.065);
   transition: transform 120ms ease-out, box-shadow 120ms ease-out;
 }
 .task-card:active { transform: scale(0.99); box-shadow: 0 2rpx 10rpx rgba(30, 52, 35, 0.04); }
@@ -864,12 +860,12 @@ onBeforeUnmount(() => {
 .badge-warning { color: #c98308; background: #fff4d6; }
 .badge-danger { color: #d35a5d; background: #ffeded; }
 .badge-icon { width: 22rpx; height: 22rpx; margin-right: 4rpx; }
-.task-price { color: #f4a21e; font-size: 42rpx; font-weight: 700; line-height: 1; }
+.task-price { color: #61bd8e; font-size: 40rpx; font-weight: 800; line-height: 1; }
 .tip-row { display: flex; align-items: center; gap: 10rpx; margin-bottom: 16rpx; padding: 10rpx 14rpx; border-radius: 14rpx; background: #fff7df; }
 .tip-badge { padding: 4rpx 10rpx; border-radius: 8rpx; background: #ffb324; color: #fff; font-size: 19rpx; }
 .tip-amount { color: #d98708; font-size: 24rpx; font-weight: 600; }
 
-.route-section { display: flex; gap: 16rpx; margin-bottom: 16rpx; padding: 18rpx; border-radius: 18rpx; background: #f7faf8; }
+.route-section { display: flex; gap: 16rpx; margin-bottom: 16rpx; padding: 20rpx; border-radius: 22rpx; background: #f4faf6; }
 .route-item { display: flex; width: 20rpx; flex-shrink: 0; flex-direction: column; align-items: center; padding: 7rpx 0; }
 .route-dot { width: 16rpx; height: 16rpx; flex-shrink: 0; border-radius: 50%; }
 .pickup-dot { background: #52c41a; }
@@ -894,7 +890,7 @@ onBeforeUnmount(() => {
   width: 184rpx;
   height: 68rpx;
   border-radius: 34rpx;
-  background: #52c41a;
+  background: #68c995;
   color: #fff;
   font-size: 26rpx;
   font-weight: 700;
@@ -916,14 +912,8 @@ onBeforeUnmount(() => {
 .load-more-state { padding: 26rpx 0; color: #8a928c; font-size: 23rpx; text-align: center; }
 .list-bottom-space { height: 40rpx; }
 
-.fab-wrapper { position: fixed; right: 30rpx; bottom: calc(150rpx + env(safe-area-inset-bottom)); z-index: 998; display: flex; flex-direction: column; align-items: center; gap: 6rpx; }
-.fab-button { display: flex; width: 104rpx; height: 104rpx; align-items: center; justify-content: center; border: 6rpx solid #fff; border-radius: 50%; background: #52c41a; box-shadow: 0 10rpx 24rpx rgba(82, 196, 26, 0.28); transition: transform 100ms ease-out, background-color 100ms ease-out; }
-.fab-button:active { transform: scale(0.94); background: #45ad18; }
-.fab-icon { margin-top: -4rpx; color: #fff; font-size: 58rpx; font-weight: 300; line-height: 1; }
-.fab-label { padding: 4rpx 14rpx; border-radius: 999rpx; background: #fff; color: #278c38; font-size: 21rpx; font-weight: 600; box-shadow: 0 3rpx 12rpx rgba(30, 52, 35, 0.08); }
-
 @media (prefers-reduced-motion: reduce) {
-  .task-card, .accept-btn, .fab-button, .type-tag, .filter-chip, .locate-btn { transition: none; }
+  .task-card, .accept-btn, .type-tag, .filter-chip, .locate-btn { transition: none; }
   .skeleton-row { animation: none; }
 }
 </style>
