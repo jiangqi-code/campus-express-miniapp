@@ -58,7 +58,7 @@ const couponOptions = computed(() => ['不使用优惠券', ...availableCoupons.
 const couponIndex = computed(() => Math.max(0, availableCoupons.value.findIndex((item) => item.id === selectedCouponId.value) + 1))
 async function loadCoupons() {
   try {
-    const result = await http.get<any>('/coupons/usable', { amount: feePreview.value })
+    const result = await http.get<any>('/coupons/available', { orderAmount: feePreview.value })
     coupons.value = result?.data ?? result ?? []
     selectedCouponId.value = availableCoupons.value.slice().sort((a, b) => discountFor(b) - discountFor(a))[0]?.id || ''
   } catch { coupons.value = [] }

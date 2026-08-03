@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/auth'
 import { http } from '@/utils/request'
 import { scrollToFirstError } from '@/utils/experience'
 import { parseIdCard } from '@/utils/idCard'
+import CouponWelcomeModal from '@/components/CouponWelcomeModal.vue'
 
 const authStore = useAuthStore()
 const currentTab = ref<'login' | 'register'>('login')
@@ -13,6 +14,7 @@ const countdown = ref(0)
 const showLoginPassword = ref(false)
 const showRegisterPassword = ref(false)
 const verifiedPhone = ref('')
+const welcomeCoupons = ref<any[]>([])
 let countdownTimer: ReturnType<typeof setInterval> | undefined
 
 const PHONE_RE = /^1[3-9]\d{9}$/
@@ -139,13 +141,13 @@ async function onRegister() {
       phone: registerForm.phone.trim(),
       password: registerForm.password.trim(),
       nickname: registerForm.nickname.trim(),
-      birth_date: registerForm.birth_date || undefined,
-      id_card: registerForm.id_card.trim() || undefined,
+      birthDate: registerForm.birth_date || undefined,
+      idCard: registerForm.id_card.trim() || undefined,
     })
-    uni.showToast({ title: '注册成功，请登录', icon: 'success' })
-    currentTab.value = 'login'
-    loginForm.account = registerForm.phone.trim() || registerForm.student_id.trim()
-    loginForm.password = registerForm.password.trim()
+    const welcome=await http.post<any>('/coupons/welcome',{})
+    welcomeCoupons.value=(welcome?.data??welcome)?.coupons??[]
+    uni.showToast({ title: '注册成功', icon: 'success' })
+    if(!welcomeCoupons.value.length)goHomeByRole()
   } catch (error: any) {
     uni.showToast({ title: error.message || '注册失败', icon: 'none' })
   } finally {
@@ -228,6 +230,7 @@ async function onRegister() {
         </view>
       </template>
     </view>
+    <CouponWelcomeModal v-if="welcomeCoupons.length" :items="welcomeCoupons" @close="goHomeByRole" @claimed="()=>uni.reLaunch({url:'/pages/coupon/index'})" />
   </view>
 </template>
 

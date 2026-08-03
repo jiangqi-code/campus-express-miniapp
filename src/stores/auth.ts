@@ -60,8 +60,18 @@ export const useAuthStore = defineStore('auth', () => {
     return result
   }
 
-  async function register(payload: { student_id: string; phone: string; password: string; nickname: string; birth_date?:string; id_card?:string }) {
-    return http.post('/auth/register', payload, false)
+  async function register(payload: { student_id: string; phone: string; password: string; nickname: string; birthDate?:string; idCard?:string }) {
+    const result=await http.post<any>('/auth/register',payload,false)
+    const user=result?.user??result?.data?.user??{}
+    token.value=String(result?.token??result?.data?.token??'').trim()
+    role.value=normalizeRole(user?.role)
+    profile.value={
+      id:String(user?.id??''),nickname:String(user?.nickname??payload.nickname),phone:String(user?.phone??payload.phone),
+      studentId:String(user?.student_id??payload.student_id),avatar:String(user?.avatar??''),role:role.value,
+      creditScore:Number(user?.credit_score??0),birthDate:String(user?.birth_date??payload.birthDate??''),idCard:String(user?.id_card??payload.idCard??''),
+    }
+    await persist()
+    return result
   }
 
   async function fetchProfile() {
