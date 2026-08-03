@@ -1,5 +1,5 @@
-﻿export const API_HOST = import.meta.env.VITE_API_HOST || 'http://localhost:3000'
-export const API_BASE_URL = `${API_HOST}/api`
+﻿export const API_HOST = ''
+export const API_BASE_URL = '/api'
 export const SOCKET_BASE_URL = `${API_HOST.replace('http', 'ws')}/socket.io`
 
 export const STORAGE_KEYS = {

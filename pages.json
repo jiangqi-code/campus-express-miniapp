@@ -1,6 +1,13 @@
 {
   "pages": [
     {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "校园跑腿",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
       "path": "pages/task/hall",
       "style": {
         "navigationBarTitleText": "任务大厅",
@@ -78,12 +85,6 @@
       "style": {
         "navigationBarTitleText": "收益中心",
         "enablePullDownRefresh": true
-      }
-    },
-    {
-      "path": "pages/index/index",
-      "style": {
-        "navigationBarTitleText": "首页"
       }
     }
   ],

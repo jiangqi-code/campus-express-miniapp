@@ -31,8 +31,6 @@ export default defineConfig(({ mode }) => {
     css: {
       preprocessorOptions: {
         scss: {
-          // uni-app 5.05 still invokes Sass through the legacy JS API.
-          // Source styles already use the module system; silence only this upstream warning.
           silenceDeprecations: ['legacy-js-api'],
         },
       },
@@ -43,12 +41,17 @@ export default defineConfig(({ mode }) => {
       }
     },
     server: {
-      host: '0.0.0.0',
+      host: '127.0.0.1',
       port: 3003,
+      strictPort: true,
+      hmr: {
+        host: 'localhost',
+        clientPort: 3003,
+      },
       proxy: {
         '/api': {
-          target: apiHost,
-          changeOrigin: true,
+          target: 'http://localhost:3000',
+          changeOrigin: true
         },
         '/socket.io': {
           target: apiHost,
