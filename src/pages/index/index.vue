@@ -83,6 +83,7 @@
     <!-- #ifdef H5 -->
     <AppTabBar current="home" :unread-message-count="unreadCount" />
     <!-- #endif -->
+    <CouponWelcomeModal v-if="couponNotices.length" :items="couponNotices" @close="couponNotices=[]" @claimed="onCouponClaimed" />
   </view>
 </template>
 
@@ -94,6 +95,7 @@ import { useMessageStore } from '@/stores/message'
 import { http } from '@/utils/request'
 import type { TaskItem } from '@/types/models'
 import AppTabBar from '@/components/AppTabBar.vue'
+import CouponWelcomeModal from '@/components/CouponWelcomeModal.vue'
 
 const assets = {
   hero: '/task-hall/campus-runner-hero.png',
@@ -109,8 +111,11 @@ const authStore = useAuthStore()
 const messageStore = useMessageStore()
 const tasks = ref<TaskItem[]>([])
 const loading = ref(true)
+const couponNotices = ref<any[]>([])
 const displayName = computed(() => authStore.profile?.nickname?.trim() || '同学')
 const unreadCount = computed(() => messageStore.unreadCount)
+async function loadCouponNotices(){if(!authStore.isLogin)return;try{const result=await http.get<any>('/coupons/check-notification');couponNotices.value=result?.data??result??[]}catch{couponNotices.value=[]}}
+function onCouponClaimed(id:string){const index=couponNotices.value.findIndex(v=>v.id===id);if(index>=0)couponNotices.value[index].claimed_at=new Date().toISOString()}
 
 const services = [
   { title: '取快递', desc: '代取件寄件', icon: '/task-hall-icons/bicycle.svg', tone: 'mint', path: '/pages/task/publish?type=快递' },
@@ -153,6 +158,7 @@ async function loadTasks() {
 
 onLoad(() => {
   if (authStore.isLogin && !authStore.profile) authStore.fetchProfile().catch(() => {})
+  loadCouponNotices()
   loadTasks()
 })
 </script>

@@ -9,6 +9,8 @@ export interface LocationPoint {
 }
 
 export interface UserProfile {
+  birthDate?: string
+  idCard?: string
   id: string
   nickname: string
   phone: string

@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { http } from '@/utils/request'
 import { scrollToFirstError } from '@/utils/experience'
+import { parseIdCard } from '@/utils/idCard'
 
 const authStore = useAuthStore()
 const currentTab = ref<'login' | 'register'>('login')
@@ -18,7 +19,7 @@ const PHONE_RE = /^1[3-9]\d{9}$/
 const STUDENT_ID_RE = /^[A-Za-z0-9]{6,20}$/
 const PASSWORD_RE = /^(?=.*[A-Za-z])(?=.*\d).{8,32}$/
 
-const errors = reactive({ account: '', loginPassword: '', student_id: '', phone: '', nickname: '', password: '', code: '' })
+const errors = reactive({ account: '', loginPassword: '', student_id: '', phone: '', nickname: '', password: '', code: '', id_card: '' })
 
 
 const loginForm = reactive({
@@ -32,6 +33,8 @@ const registerForm = reactive({
   password: '',
   nickname: '',
   code: '',
+  birth_date: '',
+  id_card: '',
 })
 
 const titleText = computed(() => (currentTab.value === 'login' ? '欢迎回来' : '创建校园跑腿账号'))
@@ -57,12 +60,19 @@ function validateRegister() {
   errors.nickname = registerForm.nickname.trim() ? '' : '请输入昵称'
   errors.password = PASSWORD_RE.test(registerForm.password) ? '' : '密码需为8-32位，且包含字母和数字'
   errors.code = /^\d{6}$/.test(registerForm.code) ? '' : '验证码必须是6位数字'
-  return !errors.student_id && !errors.phone && !errors.nickname && !errors.password && !errors.code
+  errors.id_card = registerForm.id_card && !parseIdCard(registerForm.id_card).isValid ? '身份证号格式或校验位不正确' : ''
+  return !errors.student_id && !errors.phone && !errors.nickname && !errors.password && !errors.code && !errors.id_card
 }
 
 watch(() => registerForm.phone, () => {
   if (registerForm.phone.trim() !== verifiedPhone.value) verifiedPhone.value = ''
 })
+watch(() => registerForm.id_card, value => {
+  const parsed=parseIdCard(value)
+  errors.id_card=value&&!parsed.isValid?'身份证号格式或校验位不正确':''
+  if(parsed.isValid)registerForm.birth_date=parsed.birthDate
+})
+function chooseBirthDate(event:any){registerForm.birth_date=event.detail.value}
 
 onBeforeUnmount(() => {
   if (countdownTimer) clearInterval(countdownTimer)
@@ -129,6 +139,8 @@ async function onRegister() {
       phone: registerForm.phone.trim(),
       password: registerForm.password.trim(),
       nickname: registerForm.nickname.trim(),
+      birth_date: registerForm.birth_date || undefined,
+      id_card: registerForm.id_card.trim() || undefined,
     })
     uni.showToast({ title: '注册成功，请登录', icon: 'success' })
     currentTab.value = 'login'
@@ -198,6 +210,13 @@ async function onRegister() {
         <view class="field-label">昵称</view>
         <input v-model="registerForm.nickname" class="input" placeholder="请输入昵称" @input="errors.nickname = ''" />
         <view v-if="errors.nickname" class="field-error">{{ errors.nickname }}</view>
+        <view class="field-label">出生日期</view>
+        <picker mode="date" :value="registerForm.birth_date" :end="new Date().toISOString().slice(0,10)" @change="chooseBirthDate">
+          <view class="input picker-value" :class="{placeholder:!registerForm.birth_date}">{{registerForm.birth_date||'请选择出生日期'}}</view>
+        </picker>
+        <view class="field-label">身份证号（选填）</view>
+        <input v-model="registerForm.id_card" class="input" maxlength="18" placeholder="输入后自动解析生日" @input="errors.id_card=''" />
+        <view v-if="errors.id_card" class="field-error">{{errors.id_card}}</view>
         <view class="field-label">密码</view>
         <view class="password-field">
           <input v-model="registerForm.password" class="input" :password="!showRegisterPassword" placeholder="8-32位，包含字母和数字" @input="errors.password = ''" />
@@ -284,6 +303,7 @@ async function onRegister() {
   font-weight: 600;
 }
 .code-button[disabled] { opacity: 0.55; }
+.picker-value{display:flex;align-items:center}.placeholder{color:#9ca3af}
 
 @media screen and (max-width: 375px) {
   .auth-page { padding-right: 20rpx; padding-left: 20rpx; }

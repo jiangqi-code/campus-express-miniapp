@@ -60,7 +60,7 @@ export const useAuthStore = defineStore('auth', () => {
     return result
   }
 
-  async function register(payload: { student_id: string; phone: string; password: string; nickname: string }) {
+  async function register(payload: { student_id: string; phone: string; password: string; nickname: string; birth_date?:string; id_card?:string }) {
     return http.post('/auth/register', payload, false)
   }
 
@@ -76,6 +76,8 @@ export const useAuthStore = defineStore('auth', () => {
       role: normalizeRole(user?.role ?? role.value),
       creditScore: Number(user?.credit_score ?? user?.creditScore ?? profile.value?.creditScore ?? 0),
       walletBalance: Number(user?.wallet_balance ?? user?.walletBalance ?? profile.value?.walletBalance ?? 0),
+      birthDate: String(user?.birth_date ?? user?.birthDate ?? profile.value?.birthDate ?? ''),
+      idCard: String(user?.id_card ?? user?.idCard ?? profile.value?.idCard ?? ''),
     }
     role.value = profile.value.role
     await persist()

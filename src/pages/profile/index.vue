@@ -43,7 +43,7 @@ onLoad(async () => { await auth.bootstrap(); if (!auth.isLogin) return uni.reLau
       <view class="card profile-core" @tap="go('/pages/profile/edit')">
         <image v-if="auth.profile?.avatar" class="avatar" :src="toAbsoluteFileUrl(auth.profile.avatar)" mode="aspectFill" />
         <view v-else class="avatar avatar-placeholder">{{ initial }}</view>
-        <view class="core-info"><view class="section-title">{{ auth.profile?.nickname || '同学' }}</view><view class="section-desc">{{ roleText }} · 信用分 {{ auth.profile?.creditScore || 0 }}</view></view>
+        <view class="core-info"><view class="section-title">{{ auth.profile?.nickname || '同学' }}</view><view class="section-desc">{{ roleText }} · 信用分 {{ auth.profile?.creditScore || 0 }}</view><view class="birthday">{{auth.profile?.birthDate?`生日 ${auth.profile.birthDate.slice(0,10)}`:'补充生日信息 →'}}</view></view>
         <uni-icons type="right" size="20" color="#9ca3af" />
       </view>
       <view class="card menu-card"><view v-for="item in menus" :key="item.label" class="menu-item" @tap="go(item.url)"><view class="menu-icon"><uni-icons :type="item.icon" size="22" color="#52C41A" /></view><view class="menu-copy"><text class="menu-label">{{ item.label }}</text><text v-if="item.desc" class="menu-desc">{{ item.desc }}</text></view><uni-icons type="right" size="18" color="#c0c4cc" /></view></view>
@@ -60,4 +60,5 @@ onLoad(async () => { await auth.bootstrap(); if (!auth.isLogin) return uni.reLau
 
 /* Commercial profile identity header */
 .profile-page{background:#f6f9f3}.profile-core{position:relative;overflow:hidden;min-height:220rpx;padding:40rpx 32rpx;background:linear-gradient(135deg,#389e0d 0%,#52c41a 58%,#73d13d 100%);border-radius:40rpx;box-shadow:0 18rpx 42rpx rgba(82,196,26,.22)}.profile-core:after{content:'';position:absolute;right:-70rpx;top:-100rpx;width:260rpx;height:260rpx;border:40rpx solid rgba(255,255,255,.10);border-radius:50%}.profile-core .section-title,.profile-core .section-desc{color:#fff}.profile-core .section-desc{opacity:.78}.avatar{position:relative;z-index:1;width:128rpx;height:128rpx;border:6rpx solid rgba(255,255,255,.72);box-shadow:0 8rpx 24rpx rgba(30,41,59,.18)}.avatar-placeholder{background:rgba(255,255,255,.2)}.core-info{position:relative;z-index:1}.menu-card{border:0;border-radius:32rpx;box-shadow:0 4rpx 24rpx rgba(0,0,0,.05)}.menu-icon{background:#f1faed}.menu-item:nth-child(2n) .menu-icon{background:#edf8e9}.menu-item:nth-child(3n) .menu-icon{background:#fffbeb}.menu-item:nth-child(4n) .menu-icon{background:#ecfdf5}.menu-label{color:#1a1a2e!important;font-size:30rpx!important;font-weight:500}.menu-desc{color:#6b7280!important;font-size:24rpx!important}.logout{border:2rpx solid #fecaca;background:#fff;color:#ef4444;box-shadow:none}
+.birthday{margin-top:12rpx;color:rgba(255,255,255,.9);font-size:23rpx}
 </style>
