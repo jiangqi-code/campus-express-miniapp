@@ -80,13 +80,9 @@
       </view>
     </view>
 
-    <view class="tabbar">
-      <view class="tab active"><image :src="assets.location" /><text>首页</text></view>
-      <view class="tab" @tap="goHall"><image :src="assets.bicycle" /><text>大厅</text></view>
-      <view class="publish" @tap="goPublish"><text>＋</text></view>
-      <view class="tab" @tap="go('/pages/message/index')"><image :src="assets.note" /><text>消息</text></view>
-      <view class="tab" @tap="go('/pages/profile/index')"><image :src="assets.mascot" /><text>我的</text></view>
-    </view>
+    <!-- #ifdef H5 -->
+    <AppTabBar current="home" :unread-message-count="unreadCount" />
+    <!-- #endif -->
   </view>
 </template>
 
@@ -94,8 +90,10 @@
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { useAuthStore } from '@/stores/auth'
+import { useMessageStore } from '@/stores/message'
 import { http } from '@/utils/request'
 import type { TaskItem } from '@/types/models'
+import AppTabBar from '@/components/AppTabBar.vue'
 
 const assets = {
   hero: '/task-hall/campus-runner-hero.png',
@@ -108,9 +106,11 @@ const assets = {
   note: '/task-hall-icons/note.svg',
 } as const
 const authStore = useAuthStore()
+const messageStore = useMessageStore()
 const tasks = ref<TaskItem[]>([])
 const loading = ref(true)
 const displayName = computed(() => authStore.profile?.nickname?.trim() || '同学')
+const unreadCount = computed(() => messageStore.unreadCount)
 
 const services = [
   { title: '取快递', desc: '代取件寄件', icon: '/task-hall-icons/bicycle.svg', tone: 'mint', path: '/pages/task/publish?type=快递' },
@@ -127,9 +127,14 @@ const tools = [
   { label: '邀请好友', icon: '/task-hall-icons/bicycle.svg', path: '/pages/profile/index' },
 ]
 
-const go = (url: string) => uni.navigateTo({ url })
-const goHall = () => uni.reLaunch({ url: '/pages/task/hall' })
-const goPublish = () => go('/pages/task/publish')
+const tabPaths = new Set(['/pages/index/index', '/pages/task/hall', '/pages/task/publish', '/pages/message/index', '/pages/profile/index'])
+const go = (url: string) => {
+  const pagePath = url.split('?')[0]
+  if (tabPaths.has(pagePath)) uni.switchTab({ url: pagePath })
+  else uni.navigateTo({ url })
+}
+const goHall = () => uni.switchTab({ url: '/pages/task/hall' })
+const goPublish = () => uni.switchTab({ url: '/pages/task/publish' })
 const openTask = (id: string) => go(`/pages/task/detail?id=${encodeURIComponent(id)}`)
 const money = (value: unknown) => Number(value || 0).toFixed(2)
 
@@ -164,6 +169,5 @@ onLoad(() => {
 .task-empty{display:flex;min-height:180rpx;padding:24rpx 35rpx;align-items:center;gap:23rpx;border-radius:28rpx;background:#fff;box-sizing:border-box}.task-empty image{width:148rpx;height:118rpx}.empty-title,.empty-desc{display:block}.empty-title{font-size:25rpx;font-weight:700}.empty-desc{margin-top:9rpx;color:#89928d;font-size:20rpx}
 .coupon{display:flex;min-height:145rpx;margin-top:18rpx;padding:26rpx 30rpx;align-items:center;justify-content:space-between;border-radius:30rpx;background:linear-gradient(100deg,#d7f4e5,#fff2bd);box-sizing:border-box}.coupon-title{display:block;font-size:26rpx}.coupon-row{display:flex;margin-top:11rpx;align-items:center;gap:13rpx}.coupon-off{color:#68bf94;font-size:32rpx;font-weight:700}.coupon-btn{padding:7rpx 14rpx;border-radius:20rpx;background:#80cba7;color:#fff;font-size:18rpx}.coupon image{width:90rpx;height:90rpx}
 .tools-card{margin-top:18rpx;padding:29rpx 25rpx;border-radius:34rpx;background:#fff;box-shadow:0 8rpx 25rpx rgba(42,76,57,.05)}.tool-grid{display:grid;grid-template-columns:repeat(5,1fr);margin-top:25rpx}.tool{display:flex;align-items:center;flex-direction:column;gap:11rpx;font-size:20rpx}.tool-icon{display:flex;width:74rpx;height:74rpx;align-items:center;justify-content:center;border-radius:50%;background:#edf8f2}.tool-icon image{width:39rpx;height:39rpx}
-.tabbar{position:fixed;z-index:20;left:20rpx;right:20rpx;bottom:calc(14rpx + env(safe-area-inset-bottom));display:grid;height:108rpx;padding:0 18rpx;grid-template-columns:repeat(5,1fr);align-items:center;border-radius:58rpx;background:rgba(255,255,255,.97);box-shadow:0 12rpx 36rpx rgba(36,69,51,.16)}.tab{display:flex;align-items:center;flex-direction:column;gap:5rpx;color:#747f79;font-size:19rpx}.tab image{width:33rpx;height:33rpx}.tab.active{color:#68bf94;font-weight:700}.publish{display:flex;width:102rpx;height:102rpx;margin:-48rpx auto 0;align-items:center;justify-content:center;border:8rpx solid #f6f9f3;border-radius:50%;background:#7dcca7;box-shadow:0 10rpx 22rpx rgba(77,174,128,.3);color:#fff;box-sizing:border-box}.publish text{margin-top:-6rpx;font-size:58rpx;font-weight:300}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>

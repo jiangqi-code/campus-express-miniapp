@@ -3,25 +3,25 @@
 // ============================================
 
 // 品牌主题色：根据产品品牌定位修改
-$color-primary: #3b82f6;
-$color-primary-light: #60a5fa;
-$color-primary-dark: #2563eb;
-$color-primary-soft: #eff6ff;
-$color-secondary: #8b5cf6;
-$color-secondary-soft: #f5f3ff;
+$color-primary: #52c41a;
+$color-primary-light: #73d13d;
+$color-primary-dark: #389e0d;
+$color-primary-soft: #f1faed;
+$color-secondary: #278c38;
+$color-secondary-soft: #edf8e9;
 
 // 功能色
 $color-success: #10b981;
 $color-warning: #f59e0b;
 $color-error: #ef4444;
-$color-info: #3b82f6;
+$color-info: #52c41a;
 $color-success-soft: #ecfdf5;
 $color-warning-soft: #fffbeb;
 $color-error-soft: #fef2f2;
-$color-info-soft: #eff6ff;
+$color-info-soft: #f1faed;
 
 // 背景色
-$color-bg-page: #f2f4f8;
+$color-bg-page: #f6f9f3;
 $color-bg-card: #ffffff;
 $color-bg-hover: #f2f3f5;
 
@@ -62,4 +62,4 @@ $radius-card: 32rpx;
 $radius-card-large: 40rpx;
 $radius-pill: 999rpx;
 $shadow-card: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
-$focus-ring: 0 0 0 6rpx rgba(59, 130, 246, 0.14);
+$focus-ring: 0 0 0 6rpx rgba(82, 196, 26, 0.14);

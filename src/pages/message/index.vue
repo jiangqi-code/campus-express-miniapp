@@ -174,7 +174,9 @@ onLoad(async () => {
       <view v-if="messages.length > 0" class="list-footer">{{ loading ? '加载中…' : hasNext ? '上拉加载更多' : '已加载全部消息' }}</view>
     </scroll-view>
 
+    <!-- #ifdef H5 -->
     <AppTabBar current="message" :unread-message-count="unreadCount" />
+    <!-- #endif -->
   </view>
 </template>
 
@@ -268,7 +270,7 @@ onLoad(async () => {
   top: 24rpx;
   bottom: 24rpx;
   width: 8rpx;
-  background: #2563eb;
+  background: #52c41a;
   border-radius: 0 4rpx 4rpx 0;
 }
 
@@ -355,8 +357,8 @@ onLoad(async () => {
 .mark-read-btn {
   flex-shrink: 0;
   padding: 8rpx 20rpx;
-  background: #dbeafe;
-  color: #2563eb;
+  background: #f1faed;
+  color: #389e0d;
   font-size: 22rpx;
   border-radius: 999rpx;
   font-weight: 600;

@@ -3,12 +3,16 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { onBackPress } from '@dcloudio/uni-app'
 import { ITEM_TYPES } from '@/config'
 import { useAuthStore } from '@/stores/auth'
+import { useMessageStore } from '@/stores/message'
 import type { LocationPoint } from '@/types/models'
 import { formatMoney, toAbsoluteFileUrl } from '@/utils/format'
 import { uploadImage, http } from '@/utils/request'
 import { haversineDistance } from '@/utils/location'
+import AppTabBar from '@/components/AppTabBar.vue'
 
 const authStore = useAuthStore()
+const messageStore = useMessageStore()
+const unreadCount = computed(() => messageStore.unreadCount)
 
 const form = reactive({
   pickup: null as LocationPoint | null,
@@ -323,7 +327,7 @@ onBeforeUnmount(() => { if (typeof window !== 'undefined') window.removeEventLis
 </script>
 
 <template>
-  <view class="page-shell">
+  <view class="page-shell publish-page">
     <view class="card">
       <view class="section-title">发布任务</view>
       <view class="section-desc">支持地图选点、1-3 张图片上传、物品类型、时效和小费配置</view>
@@ -413,6 +417,9 @@ onBeforeUnmount(() => { if (typeof window !== 'undefined') window.removeEventLis
         {{ submitting ? '提交中...' : '确认发布任务' }}
       </view>
     </view>
+    <!-- #ifdef H5 -->
+    <AppTabBar current="publish" :unread-message-count="unreadCount" />
+    <!-- #endif -->
   </view>
 </template>
 
@@ -426,27 +433,27 @@ onBeforeUnmount(() => { if (typeof window !== 'undefined') window.removeEventLis
 }
 
 .form-section-title { color: #1d2129; font-size: 30rpx; font-weight: 700; }
-.swap-button { width: 240rpx; height: 68rpx; margin: 20rpx auto; border-radius: 999rpx; background: #eef3ff; color: #3b82f6; font-size: 24rpx; }
+.swap-button { width: 240rpx; height: 68rpx; margin: 20rpx auto; border-radius: 999rpx; background: #edf8e9; color: #389e0d; font-size: 24rpx; }
 .location-map { width: 100%; height: 360rpx; overflow: hidden; border-radius: 18rpx; }
 .map-summary { display: flex; flex-direction: column; gap: 6rpx; margin-top: 12rpx; color: #86909c; font-size: 22rpx; }
 .field-hint { margin-top: 8rpx; color: #86909c; font-size: 22rpx; }
-.pricing-explanation { margin: 14rpx 0 18rpx; padding: 14rpx 16rpx; border-radius: 12rpx; background: #eef3ff; color: #4e5969; font-size: 22rpx; line-height: 1.5; }
+.pricing-explanation { margin: 14rpx 0 18rpx; padding: 14rpx 16rpx; border-radius: 12rpx; background: #f1faed; color: #4e5969; font-size: 22rpx; line-height: 1.5; }
 .active {
-  border-color: #2563eb;
-  color: #2563eb;
-  background: #eff6ff;
+  border-color: #52c41a;
+  color: #389e0d;
+  background: #f1faed;
 }
 
 .upload-box {
   width: 180rpx;
   height: 180rpx;
   border-radius: 20rpx;
-  background: #eff6ff;
-  border: 2rpx dashed #93c5fd;
+  background: #f1faed;
+  border: 2rpx dashed #95de64;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #2563eb;
+  color: #389e0d;
   font-size: 56rpx;
   flex-shrink: 0;
 }
@@ -513,5 +520,5 @@ onBeforeUnmount(() => { if (typeof window !== 'undefined') window.removeEventLis
 }
 
 /* Grouped publishing flow */
-.publish-page{background:#f2f4f8}.form-card,.location-card,.upload-card{border:0;border-radius:40rpx;box-shadow:0 4rpx 24rpx rgba(0,0,0,.05)}.form-section{margin-bottom:24rpx;padding:28rpx;background:#fff;border:2rpx solid #e7eaf0;border-radius:32rpx}.field-label{color:#1a1a2e;font-size:30rpx}.input,.textarea,.picker-like{border-color:#e7eaf0;background:#f8fafc}.input:focus,.textarea:focus{border-color:#3b82f6}.location-map{height:380rpx!important;border:8rpx solid #fff;border-radius:32rpx!important;box-shadow:0 4rpx 20rpx rgba(15,23,42,.08)}.map-summary{padding:20rpx 24rpx;color:#6b7280!important;background:#f5f3ff;border-radius:20rpx}.submit-btn{background:linear-gradient(135deg,#3b82f6,#8b5cf6);box-shadow:0 12rpx 28rpx rgba(99,102,241,.26)}
+.publish-page{background:#f6f9f3}.form-card,.location-card,.upload-card{border:0;border-radius:40rpx;box-shadow:0 4rpx 24rpx rgba(36,69,51,.06)}.form-section{margin-bottom:24rpx;padding:28rpx;background:#fff;border:2rpx solid #e4eee0;border-radius:32rpx}.field-label{color:#293630;font-size:30rpx}.input,.textarea,.picker-like{border-color:#e4eee0;background:#fbfdf9}.input:focus,.textarea:focus{border-color:#52c41a}.location-map{height:380rpx!important;border:8rpx solid #fff;border-radius:32rpx!important;box-shadow:0 4rpx 20rpx rgba(36,69,51,.09)}.map-summary{padding:20rpx 24rpx;color:#6f7d73!important;background:#f1faed;border-radius:20rpx}.submit-btn{background:#52c41a;box-shadow:0 12rpx 28rpx rgba(82,196,26,.26)}
 </style>

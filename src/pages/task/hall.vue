@@ -224,7 +224,9 @@
       <view class="fab-label">发布</view>
     </view>
 
+    <!-- #ifdef H5 -->
     <AppTabBar current="hall" :unread-message-count="unreadCount" />
+    <!-- #endif -->
   </view>
 </template>
 
