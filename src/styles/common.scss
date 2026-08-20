@@ -4,6 +4,7 @@ page {
   background: #f6f9f3;
   color: #293630;
   font-size: 28rpx;
+  overflow-x: hidden;
 }
 
 view,
@@ -27,8 +28,10 @@ button::after {
 }
 
 .page-shell {
+  width: 100%;
   min-height: 100vh;
   padding: 24rpx 24rpx 170rpx;
+  overflow-x: hidden;
 }
 
 .card {

@@ -176,9 +176,10 @@
           <image
             v-for="(img, idx) in task.images.slice(0, 4)"
             :key="idx"
-            :src="toAbsoluteFileUrl(img)"
+            :src="toThumbnailFileUrl(img)"
             class="thumb-image"
             mode="aspectFill"
+            lazy-load
           />
         </view>
 
@@ -235,7 +236,8 @@ import {
   formatDistance,
   formatMoney,
   formatRelativeTime,
-  toAbsoluteFileUrl,
+  parseImageList,
+  toThumbnailFileUrl,
 } from '@/utils/format'
 import { getCurrentLocation, haversineDistance } from '@/utils/location'
 import { http } from '@/utils/request'
@@ -355,6 +357,7 @@ const processedTasks = computed<TaskWithComputed[]>(() => {
       return {
         ...item,
         distance,
+        images: Array.isArray(item.images) ? item.images : parseImageList((item as any).images_json),
         _remainingSeconds: remaining,
       } as TaskWithComputed
     })
@@ -477,7 +480,11 @@ const fetchTasks = async (targetPage = 1) => {
 
     const result = await http.get<any>('/task/list', params)
     const data = (result as any)?.data ?? result
-    const list = Array.isArray(data?.list) ? data.list : (Array.isArray(data) ? data : [])
+    const list = Array.isArray(data?.list)
+      ? data.list
+      : Array.isArray(data?.items)
+        ? data.items
+        : (Array.isArray(data) ? data : [])
     const totalNum = Number(data?.total ?? data?.count ?? list.length)
 
     if (targetPage === 1) {

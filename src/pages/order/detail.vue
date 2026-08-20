@@ -138,8 +138,8 @@ onPullDownRefresh(loadOrder)
       <view class="card detail-section">
         <view class="section-title">配送凭证</view>
         <view v-if="pickupPhoto || deliveryPhoto" class="photo-grid">
-          <view v-if="pickupPhoto"><image class="proof-photo" :src="pickupPhoto" mode="aspectFill" /><text class="muted">取件照片</text></view>
-          <view v-if="deliveryPhoto"><image class="proof-photo" :src="deliveryPhoto" mode="aspectFill" /><text class="muted">送达照片</text></view>
+          <view v-if="pickupPhoto"><image class="proof-photo" :src="pickupPhoto" mode="aspectFill" lazy-load /><text class="muted">取件照片</text></view>
+          <view v-if="deliveryPhoto"><image class="proof-photo" :src="deliveryPhoto" mode="aspectFill" lazy-load /><text class="muted">送达照片</text></view>
         </view>
         <view v-else class="muted">暂无配送照片</view>
       </view>

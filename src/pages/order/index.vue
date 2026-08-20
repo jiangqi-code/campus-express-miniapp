@@ -14,7 +14,7 @@
     </view>
 
     <scroll-view v-show="activeTab === 'published'" scroll-y class="order-scroll"
-      refresher-enabled :refresher-triggered="pRefreshing" @refresherrefresh="loadPublished">
+      refresher-enabled :refresher-triggered="pRefreshing" @refresherrefresh="loadPublished(true)" lower-threshold="120" @scrolltolower="loadPublished(false)">
       <view v-if="pLoading && publishedList.length === 0" class="empty-box">加载中...</view>
       <view v-else-if="publishedList.length === 0" class="card empty-card">
         <view class="empty-icon-svg"><uni-icons type="box" size="32" color="#8B5CF6" /></view>
@@ -39,7 +39,7 @@
     </scroll-view>
 
     <scroll-view v-show="activeTab === 'taken'" scroll-y class="order-scroll"
-      refresher-enabled :refresher-triggered="tRefreshing" @refresherrefresh="loadTaken">
+      refresher-enabled :refresher-triggered="tRefreshing" @refresherrefresh="loadTaken(true)" lower-threshold="120" @scrolltolower="loadTaken(false)">
       <view v-if="tLoading && takenList.length === 0" class="empty-box">加载中...</view>
       <view v-else-if="takenList.length === 0" class="card empty-card">
         <view class="empty-icon-svg"><uni-icons type="navigate-filled" size="32" color="#3B82F6" /></view>
@@ -71,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import UniIcons from '@dcloudio/uni-ui/lib/uni-icons/uni-icons.vue'
 import AppTabBar from '@/components/AppTabBar.vue'
@@ -88,6 +88,13 @@ const pRefreshing = ref(false)
 const takenList = ref<any[]>([])
 const tLoading = ref(false)
 const tRefreshing = ref(false)
+const pageSize = 15
+const pPage = ref(1)
+const tPage = ref(1)
+const pHasMore = ref(true)
+const tHasMore = ref(true)
+const pLoadedAt = ref(0)
+const tLoadedAt = ref(0)
 
 const STATUS_MAP: Record<string, string> = {
   PENDING: '待接单', ACCEPTED: '已接单', PICKED_UP: '已取件', DELIVERING: '配送中',
@@ -146,28 +153,47 @@ const normalizeOrderItem = (item: any) => ({
   status: normalizeStatus(item?.status ?? item?.task?.status),
 })
 
-const loadPublished = async () => {
+const loadPublished = async (reset = true) => {
+  if (pLoading.value || (!reset && !pHasMore.value)) return
   pLoading.value = true
+  const targetPage = reset ? 1 : pPage.value + 1
   try {
-    const res: any = await http.get('/order/list', { type: 'published', page: 1, pageSize: 100 })
-    publishedList.value = parseOrderList(res).map(normalizeOrderItem)
-  } catch {
-    publishedList.value = []
-  }
+    const res: any = await http.get('/order/list', { type: 'published', page: targetPage, pageSize })
+    const items = parseOrderList(res).map(normalizeOrderItem)
+    publishedList.value = reset ? items : [...publishedList.value, ...items]
+    pPage.value = targetPage
+    pLoadedAt.value = Date.now()
+    const total = Number((res?.data ?? res)?.total || 0)
+    pHasMore.value = total > 0 ? publishedList.value.length < total : items.length >= pageSize
+  } catch { if (reset) publishedList.value = [] }
   finally { pLoading.value = false; pRefreshing.value = false }
 }
-const loadTaken = async () => {
+const loadTaken = async (reset = true) => {
+  if (tLoading.value || (!reset && !tHasMore.value)) return
   tLoading.value = true
+  const targetPage = reset ? 1 : tPage.value + 1
   try {
-    const res: any = await http.get('/order/list', { type: 'taken', page: 1, pageSize: 100 })
-    takenList.value = parseOrderList(res).map(normalizeOrderItem)
-  } catch {
-    takenList.value = []
-  }
+    const res: any = await http.get('/order/list', { type: 'taken', page: targetPage, pageSize })
+    const items = parseOrderList(res).map(normalizeOrderItem)
+    takenList.value = reset ? items : [...takenList.value, ...items]
+    tPage.value = targetPage
+    tLoadedAt.value = Date.now()
+    const total = Number((res?.data ?? res)?.total || 0)
+    tHasMore.value = total > 0 ? takenList.value.length < total : items.length >= pageSize
+  } catch { if (reset) takenList.value = [] }
   finally { tLoading.value = false; tRefreshing.value = false }
 }
 
-onShow(() => { loadPublished(); loadTaken() })
+function loadActive(force = false) {
+  if (activeTab.value === 'published') {
+    if (force || !publishedList.value.length || Date.now() - pLoadedAt.value > 15_000) void loadPublished(true)
+    return
+  }
+  if (force || !takenList.value.length || Date.now() - tLoadedAt.value > 15_000) void loadTaken(true)
+}
+
+watch(activeTab, () => loadActive())
+onShow(() => loadActive())
 </script>
 
 <style lang="scss" scoped>

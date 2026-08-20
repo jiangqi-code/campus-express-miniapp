@@ -126,3 +126,11 @@ export function toAbsoluteFileUrl(url: unknown): string {
   if (!baseHost) return path
   return `${baseHost}${path}`
 }
+
+export function toThumbnailFileUrl(url: unknown): string {
+  const absolute = toAbsoluteFileUrl(url)
+  return absolute.replace(
+    /\/uploads\/(img-[^/?#]+)\.(?:jpe?g|png|webp)(?=([?#]|$))/i,
+    '/uploads/thumbs/$1.webp',
+  )
+}

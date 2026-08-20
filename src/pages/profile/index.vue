@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
+import { onLoad, onPullDownRefresh, onShow } from '@dcloudio/uni-app'
 import UniIcons from '@dcloudio/uni-ui/lib/uni-icons/uni-icons.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMessageStore } from '@/stores/message'
@@ -10,6 +10,7 @@ import { toAbsoluteFileUrl } from '@/utils/format'
 const auth = useAuthStore()
 const messageStore = useMessageStore()
 const loading = ref(false)
+const lastLoadedAt = ref(0)
 const unreadCount = computed(() => messageStore.unreadCount)
 const initial = computed(() => (auth.profile?.nickname || '同学').slice(0, 1))
 const roleText = computed(() => auth.role === 'runner' ? '跑腿员' : auth.role === 'admin' ? '管理员' : '普通用户')
@@ -25,15 +26,20 @@ const menus = [
   { label: '评价列表', desc: '', icon: 'star', url: '/pages/review/list' },
 ]
 
-async function loadProfile() {
+async function loadProfile(force = false) {
+  if (loading.value || (!force && Date.now() - lastLoadedAt.value < 1500)) return
   loading.value = true
-  try { await auth.fetchProfile(); await messageStore.fetchMessages?.() }
+  try {
+    await auth.fetchProfile()
+    lastLoadedAt.value = Date.now()
+  }
   finally { loading.value = false; uni.stopPullDownRefresh() }
 }
 const go = (url: string) => uni.navigateTo({ url })
 const logout = async () => { const result = await uni.showModal({ title: '退出登录', content: '退出后将停止接收实时消息，确定继续吗？', confirmText: '退出登录', confirmColor: '#dc2626' }); if (result.confirm) { await auth.logout(); uni.reLaunch({ url: '/pages/auth/index' }) } }
-onPullDownRefresh(loadProfile)
-onLoad(async () => { await auth.bootstrap(); if (!auth.isLogin) return uni.reLaunch({ url: '/pages/auth/index' }); loadProfile() })
+onPullDownRefresh(() => loadProfile(true))
+onLoad(async () => { await auth.bootstrap(); if (!auth.isLogin) return uni.reLaunch({ url: '/pages/auth/index' }); await loadProfile(true) })
+onShow(() => { if (auth.isLogin) void loadProfile() })
 </script>
 
 <template>
@@ -41,7 +47,7 @@ onLoad(async () => { await auth.bootstrap(); if (!auth.isLogin) return uni.reLau
     <view v-if="loading" class="empty-box">加载中...</view>
     <template v-else>
       <view class="card profile-core" @tap="go('/pages/profile/edit')">
-        <image v-if="auth.profile?.avatar" class="avatar" :src="toAbsoluteFileUrl(auth.profile.avatar)" mode="aspectFill" />
+        <image v-if="auth.profile?.avatar" class="avatar" :src="toAbsoluteFileUrl(auth.profile.avatar)" mode="aspectFill" lazy-load />
         <view v-else class="avatar avatar-placeholder">{{ initial }}</view>
         <view class="core-info"><view class="section-title">{{ auth.profile?.nickname || '同学' }}</view><view class="section-desc">{{ roleText }} · 信用分 {{ auth.profile?.creditScore || 0 }}</view><view class="birthday">{{auth.profile?.birthDate?`生日 ${auth.profile.birthDate.slice(0,10)}`:'补充生日信息 →'}}</view></view>
         <uni-icons type="right" size="20" color="#9ca3af" />

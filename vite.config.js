@@ -51,7 +51,9 @@ export default defineConfig(({ mode }) => {
       proxy: {
         '/api': {
           target: 'http://localhost:3000',
-          changeOrigin: true
+          changeOrigin: true,
+          timeout: 60000,
+          proxyTimeout: 60000,
         },
         '/socket.io': {
           target: apiHost,

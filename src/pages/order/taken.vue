@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { onPullDownRefresh, onShow } from '@dcloudio/uni-app'
+import { onPullDownRefresh, onReachBottom, onShow } from '@dcloudio/uni-app'
 import type { OrderItem } from '@/types/models'
 import { formatDateTime, formatMoney, getStatusText, getStatusType, toAbsoluteFileUrl } from '@/utils/format'
 import { http, uploadImage } from '@/utils/request'
@@ -16,6 +16,10 @@ interface ExtendedOrderItem extends OrderItem {
 
 const loading = ref(false)
 const orders = ref<ExtendedOrderItem[]>([])
+const page = ref(1)
+const total = ref(0)
+const pageSize = 15
+const lastLoadedAt = ref(0)
 const actionLocks = ref<Record<string, boolean>>({})
 const failedUpload = ref<{ orderId: string; type: 'pickup' | 'complete'; filePath: string } | null>(null)
 const pendingOperation = ref<{ orderId: string; type: 'pickup' | 'deliver' | 'complete'; photoUrl?: string } | null>(null)
@@ -101,15 +105,16 @@ const calcEtaMinutes = (item: ExtendedOrderItem): number => {
   return Math.max(1, Math.round((remainingPct / 100) * baseTotal))
 }
 
-const fetchOrders = async () => {
+const fetchOrders = async (reset = true) => {
+  if (loading.value || (!reset && orders.value.length >= total.value)) return
   loading.value = true
+  const targetPage = reset ? 1 : page.value + 1
   try {
-    const result = await http.get<any>('/order/list', { type: 'taken', page: 1, pageSize: 100 })
+    const result = await http.get<any>('/order/list', { type: 'taken', page: targetPage, pageSize })
     const list =
       result?.data?.list ?? result?.data?.items ?? result?.list ?? result?.items ?? result?.rows ?? result?.data ?? []
     const rawList = Array.isArray(list) ? list : []
-    const normalized: ExtendedOrderItem[] = []
-    for (const item of rawList) {
+    const normalized = await Promise.all(rawList.map(async (item): Promise<ExtendedOrderItem> => {
       const orderId = String(item.id ?? item.order_id ?? item.orderId ?? '')
       const mapped: ExtendedOrderItem = {
         ...item,
@@ -126,9 +131,14 @@ const fetchOrders = async () => {
       mapped._progress = calcRunnerProgress(mapped)
       mapped._etaMinutes = calcEtaMinutes(mapped)
       mapped._lastMessage = await loadLastMessage(orderId || mapped.task_id || '')
-      normalized.push(mapped)
-    }
-    orders.value = normalized
+      return mapped
+    }))
+    orders.value = reset
+      ? normalized
+      : Array.from(new Map([...orders.value, ...normalized].map((item) => [String(item.id), item])).values())
+    page.value = targetPage
+    total.value = Number(result?.data?.total ?? result?.total ?? orders.value.length)
+    lastLoadedAt.value = Date.now()
   } catch (error: any) {
     uni.showToast({ title: error.message || '订单加载失败', icon: 'none' })
   } finally {
@@ -322,11 +332,11 @@ const progressDotStyle = (progress: number) => {
 }
 
 onPullDownRefresh(() => {
-  fetchOrders()
+  fetchOrders(true)
 })
 
 onShow(() => {
-  fetchOrders()
+  if (!orders.value.length || Date.now() - lastLoadedAt.value > 15_000) fetchOrders(true)
   startDeliveringTimer()
 })
 
@@ -334,9 +344,10 @@ onMounted(() => {
   const stored = uni.getStorageSync(PENDING_OPERATION_KEY)
   if (stored && typeof stored === 'object') pendingOperation.value = stored
   uni.onNetworkStatusChange(handleNetworkChange)
-  fetchOrders()
   startDeliveringTimer()
 })
+
+onReachBottom(() => fetchOrders(false))
 
 onUnmounted(() => {
   uni.offNetworkStatusChange(handleNetworkChange)
@@ -445,12 +456,14 @@ onUnmounted(() => {
             class="thumb-image"
             :src="toAbsoluteFileUrl(item.pickup_photo_url)"
             mode="aspectFill"
+            lazy-load
           />
           <image
             v-if="item.delivery_photo_url"
             class="thumb-image"
             :src="toAbsoluteFileUrl(item.delivery_photo_url)"
             mode="aspectFill"
+            lazy-load
           />
         </view>
 

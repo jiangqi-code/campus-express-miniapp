@@ -3,6 +3,9 @@ import { getStorage } from '@/utils/storage'
 import { removeStorage } from '@/utils/storage'
 
 let redirectingToLogin = false
+const pendingGetRequests = new Map<string, Promise<unknown>>()
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024
+const UPLOAD_RETRY_DELAYS = [600, 1400]
 
 async function handleUnauthorized() {
   if (redirectingToLogin) return
@@ -249,10 +252,16 @@ export async function request<T = any>(config: RequestConfig): Promise<T> {
       },
       fail: (err) => reject(normalizeNetworkFailure(err)),
     })
+
   })
 }
 
-export async function uploadImage(filePath: string, name = 'image', fileObj?: any) {
+async function uploadImageOnce(
+  filePath: string,
+  name = 'image',
+  fileObj?: any,
+  onProgress?: (progress: number) => void,
+): Promise<string> {
   const token = await getStorage<string>(STORAGE_KEYS.token, '')
   const isH5 = typeof window !== 'undefined'
 
@@ -263,6 +272,9 @@ export async function uploadImage(filePath: string, name = 'image', fileObj?: an
         formData.append(name, blob, filename)
         const xhr = new XMLHttpRequest()
         xhr.open('POST', `${API_BASE_URL}/upload/image`)
+        xhr.upload.onprogress = (event) => {
+          if (event.lengthComputable) onProgress?.(Math.min(99, Math.round(event.loaded / event.total * 100)))
+        }
         if (token) {
           xhr.setRequestHeader('Authorization', /^Bearer\s/i.test(token) ? token : `Bearer ${token}`)
         }
@@ -292,7 +304,7 @@ export async function uploadImage(filePath: string, name = 'image', fileObj?: an
         }
         xhr.onerror = () => reject(new Error('网络连接不可用，图片上传失败'))
         xhr.ontimeout = () => reject(new Error('上传超时，请检查网络后重试'))
-        xhr.timeout = 30000
+        xhr.timeout = 60000
         xhr.send(formData)
       }
 
@@ -310,10 +322,11 @@ export async function uploadImage(filePath: string, name = 'image', fileObj?: an
       }
     }
 
-    uni.uploadFile({
+    const uploadTask = uni.uploadFile({
       url: `${API_BASE_URL}/upload/image`,
       filePath,
       name,
+      timeout: 60000,
       header: token
         ? {
           Authorization: /^Bearer\s/i.test(token) ? token : `Bearer ${token}`,
@@ -349,11 +362,51 @@ export async function uploadImage(filePath: string, name = 'image', fileObj?: an
       },
       fail: (err) => reject(normalizeNetworkFailure(err)),
     })
+    uploadTask.onProgressUpdate((event) => onProgress?.(Math.min(99, event.progress)))
   })
 }
 
+function shouldRetryUpload(error: unknown) {
+  const message = String((error as Error | undefined)?.message || '')
+  return /超时|网络|连接|服务器|500|502|503/i.test(message)
+}
+
+export async function uploadImage(
+  filePath: string,
+  name = 'image',
+  fileObj?: any,
+  onProgress?: (progress: number) => void,
+) {
+  const fileSize = Number(fileObj?.size || 0)
+  if (fileSize > MAX_IMAGE_SIZE) throw new Error('图片不能超过 10MB')
+
+  let lastError: unknown
+  for (let attempt = 0; attempt <= UPLOAD_RETRY_DELAYS.length; attempt += 1) {
+    if (attempt > 0) {
+      onProgress?.(0)
+      await new Promise((resolve) => setTimeout(resolve, UPLOAD_RETRY_DELAYS[attempt - 1]))
+    }
+    try {
+      return await uploadImageOnce(filePath, name, fileObj, onProgress)
+    } catch (error) {
+      lastError = error
+      if (attempt >= UPLOAD_RETRY_DELAYS.length || !shouldRetryUpload(error)) throw error
+    }
+  }
+  throw lastError
+}
+
+function getWithDedup<T>(url: string, data?: Record<string, any>, auth = true) {
+  const key = `${auth ? 'auth' : 'public'}:${url}:${JSON.stringify(data || {})}`
+  const existing = pendingGetRequests.get(key)
+  if (existing) return existing as Promise<T>
+  const pending = request<T>({ url, data, auth }).finally(() => pendingGetRequests.delete(key))
+  pendingGetRequests.set(key, pending)
+  return pending
+}
+
 export const http = {
-  get: <T = any>(url: string, data?: Record<string, any>, auth = true) => request<T>({ url, data, auth }),
+  get: <T = any>(url: string, data?: Record<string, any>, auth = true) => getWithDedup<T>(url, data, auth),
   post: <T = any>(url: string, data?: Record<string, any>, auth = true) =>
     request<T>({ url, method: 'POST', data, auth }),
   put: <T = any>(url: string, data?: Record<string, any>, auth = true) =>

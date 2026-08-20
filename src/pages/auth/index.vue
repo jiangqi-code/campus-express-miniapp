@@ -141,13 +141,17 @@ async function onRegister() {
       phone: registerForm.phone.trim(),
       password: registerForm.password.trim(),
       nickname: registerForm.nickname.trim(),
-      birthDate: registerForm.birth_date || undefined,
-      idCard: registerForm.id_card.trim() || undefined,
+      birth_date: registerForm.birth_date || undefined,
+      id_card: registerForm.id_card.trim() || undefined,
     })
-    const welcome=await http.post<any>('/coupons/welcome',{})
-    welcomeCoupons.value=(welcome?.data??welcome)?.coupons??[]
+    try {
+      const welcome = await http.post<any>('/coupons/welcome', {})
+      welcomeCoupons.value = (welcome?.data ?? welcome)?.coupons ?? []
+    } catch {
+      welcomeCoupons.value = []
+    }
     uni.showToast({ title: '注册成功', icon: 'success' })
-    if(!welcomeCoupons.value.length)goHomeByRole()
+    if (!welcomeCoupons.value.length) goHomeByRole()
   } catch (error: any) {
     uni.showToast({ title: error.message || '注册失败', icon: 'none' })
   } finally {
@@ -216,6 +220,7 @@ async function onRegister() {
         <picker mode="date" :value="registerForm.birth_date" :end="new Date().toISOString().slice(0,10)" @change="chooseBirthDate">
           <view class="input picker-value" :class="{placeholder:!registerForm.birth_date}">{{registerForm.birth_date||'请选择出生日期'}}</view>
         </picker>
+        <view class="field-hint">填写身份证号后会自动同步出生日期</view>
         <view class="field-label">身份证号（选填）</view>
         <input v-model="registerForm.id_card" class="input" maxlength="18" placeholder="输入后自动解析生日" @input="errors.id_card=''" />
         <view v-if="errors.id_card" class="field-error">{{errors.id_card}}</view>
@@ -307,6 +312,7 @@ async function onRegister() {
 }
 .code-button[disabled] { opacity: 0.55; }
 .picker-value{display:flex;align-items:center}.placeholder{color:#9ca3af}
+.field-hint{margin-top:8rpx;color:#86909c;font-size:22rpx}
 
 @media screen and (max-width: 375px) {
   .auth-page { padding-right: 20rpx; padding-left: 20rpx; }

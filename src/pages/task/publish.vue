@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { onBackPress, onShow } from '@dcloudio/uni-app'
 import { ITEM_TYPES } from '@/config'
 import { useAuthStore } from '@/stores/auth'
@@ -15,6 +15,10 @@ const messageStore = useMessageStore()
 const unreadCount = computed(() => messageStore.unreadCount)
 const coupons = ref<any[]>([])
 const selectedCouponId = ref('')
+const couponSheetOpen = ref(false)
+const couponLoading = ref(false)
+let couponReloadTimer: ReturnType<typeof setTimeout> | undefined
+let couponRequestSequence = 0
 
 const form = reactive({
   pickup: null as LocationPoint | null,
@@ -54,19 +58,38 @@ const couponDiscount = computed(() => {
   return item ? discountFor(item) : 0
 })
 const payableTotal = computed(() => Math.max(0, feePreview.value + tipValue.value - couponDiscount.value))
-const couponOptions = computed(() => ['不使用优惠券', ...availableCoupons.value.map((item) => `${item.coupon.name}（省 ¥${discountFor(item).toFixed(2)}）`)])
-const couponIndex = computed(() => Math.max(0, availableCoupons.value.findIndex((item) => item.id === selectedCouponId.value) + 1))
+const selectedCoupon = computed(() => availableCoupons.value.find((item) => item.id === selectedCouponId.value) || null)
+const selectedCouponLabel = computed(() => selectedCoupon.value
+  ? `${selectedCoupon.value.coupon.name}，省 ¥${couponDiscount.value.toFixed(2)}`
+  : availableCoupons.value.length
+    ? `${availableCoupons.value.length} 张可用`
+    : '暂无可用优惠券')
 async function loadCoupons() {
+  const sequence = ++couponRequestSequence
+  couponLoading.value = true
   try {
-    const result = await http.get<any>('/coupons/available', { orderAmount: feePreview.value })
+    const result = await http.get<any>('/coupons/available', { amount: feePreview.value })
+    if (sequence !== couponRequestSequence) return
     coupons.value = result?.data ?? result ?? []
-    selectedCouponId.value = availableCoupons.value.slice().sort((a, b) => discountFor(b) - discountFor(a))[0]?.id || ''
-  } catch { coupons.value = [] }
+    if (!availableCoupons.value.some((item) => item.id === selectedCouponId.value)) selectedCouponId.value = ''
+  } catch {
+    if (sequence === couponRequestSequence) coupons.value = []
+  } finally {
+    if (sequence === couponRequestSequence) couponLoading.value = false
+  }
 }
-function selectCoupon(event: any) {
-  const index = Number(event.detail.value)
-  selectedCouponId.value = index > 0 ? availableCoupons.value[index - 1]?.id || '' : ''
+function openCouponSheet() {
+  couponSheetOpen.value = true
+  void loadCoupons()
 }
+function selectCoupon(item: any | null) {
+  selectedCouponId.value = item?.id || ''
+  couponSheetOpen.value = false
+}
+watch(feePreview, () => {
+  if (couponReloadTimer) clearTimeout(couponReloadTimer)
+  couponReloadTimer = setTimeout(() => { void loadCoupons() }, 250)
+})
 const hasUnsavedChanges = computed(() => Boolean(
   form.pickup || form.delivery || form.remark.trim() || tipValue.value > 0 || imageList.value.length || uploadStates.value.length,
 ))
@@ -107,11 +130,10 @@ function forceHideLoading() {
 
 async function uploadOne(item: UploadState) {
   item.status = 'uploading'
-  item.progress = 12
+  item.progress = 0
   item.error = ''
-  const progressTimer = setInterval(() => { item.progress = Math.min(88, item.progress + 12) }, 220)
   try {
-    const url = await uploadImage(item.filePath || '', 'image', item.fileObj)
+    const url = await uploadImage(item.filePath || '', 'image', item.fileObj, (progress) => { item.progress = progress })
     item.url = url
     item.progress = 100
     item.status = 'success'
@@ -121,20 +143,29 @@ async function uploadOne(item: UploadState) {
     item.error = error.message || '上传失败'
     uni.showToast({ title: item.error, icon: 'none' })
   } finally {
-    clearInterval(progressTimer)
   }
 }
 
 async function processFiles(files: File[]) {
   const remaining = Math.max(0, 3 - uploadStates.value.length)
-  const items = files.slice(0, remaining).map((file) => ({ id: `${Date.now()}-${Math.random()}`, url: URL.createObjectURL(file), progress: 0, status: 'uploading' as const, fileObj: file }))
+  const accepted = files.filter((file) => {
+    if (file.size <= 10 * 1024 * 1024) return true
+    uni.showToast({ title: `${file.name || '图片'}超过 10MB`, icon: 'none' })
+    return false
+  })
+  const items = accepted.slice(0, remaining).map((file) => ({ id: `${Date.now()}-${Math.random()}`, url: URL.createObjectURL(file), progress: 0, status: 'uploading' as const, fileObj: file }))
   uploadStates.value.push(...items)
   await Promise.all(items.map(uploadOne))
 }
 
 async function processPaths(paths: string[], rawFiles: any[]) {
   const remaining = Math.max(0, 3 - uploadStates.value.length)
-  const items = paths.slice(0, remaining).map((path, index) => ({ id: `${Date.now()}-${index}`, url: path, progress: 0, status: 'uploading' as const, filePath: path, fileObj: rawFiles[index] }))
+  const accepted = paths.map((path, index) => ({ path, file: rawFiles[index] })).filter(({ file }) => {
+    if (!Number(file?.size) || Number(file.size) <= 10 * 1024 * 1024) return true
+    uni.showToast({ title: '图片不能超过 10MB', icon: 'none' })
+    return false
+  })
+  const items = accepted.slice(0, remaining).map(({ path, file }, index) => ({ id: `${Date.now()}-${index}`, url: path, progress: 0, status: 'uploading' as const, filePath: path, fileObj: file }))
   uploadStates.value.push(...items)
   await Promise.all(items.map(uploadOne))
 }
@@ -256,6 +287,7 @@ function removeImage(index: number) {
   const item = uploadStates.value[index]
   uploadStates.value.splice(index, 1)
   if (item?.url) imageList.value = imageList.value.filter((url) => url !== item.url)
+  if (item?.fileObj && item.url.startsWith('blob:') && typeof URL !== 'undefined') URL.revokeObjectURL(item.url)
 }
 
 function swapLocations() {
@@ -352,7 +384,13 @@ function beforeUnload(event: BeforeUnloadEvent) {
 
 onMounted(() => { if (typeof window !== 'undefined') window.addEventListener('beforeunload', beforeUnload) })
 onShow(loadCoupons)
-onBeforeUnmount(() => { if (typeof window !== 'undefined') window.removeEventListener('beforeunload', beforeUnload) })
+onBeforeUnmount(() => {
+  if (couponReloadTimer) clearTimeout(couponReloadTimer)
+  uploadStates.value.forEach((item) => {
+    if (item.fileObj && item.url.startsWith('blob:') && typeof URL !== 'undefined') URL.revokeObjectURL(item.url)
+  })
+  if (typeof window !== 'undefined') window.removeEventListener('beforeunload', beforeUnload)
+})
 </script>
 
 <template>
@@ -438,7 +476,10 @@ onBeforeUnmount(() => { if (typeof window !== 'undefined') window.removeEventLis
         </view>
         <view class="row-between fee-total">
           <text class="muted">优惠券</text>
-          <picker :value="couponIndex" :range="couponOptions" @change="selectCoupon"><text class="coupon-picker">{{ couponOptions[couponIndex] }}</text></picker>
+          <view class="coupon-entry" @tap="openCouponSheet">
+            <text>{{ selectedCouponLabel }}</text>
+            <uni-icons type="right" size="16" color="#52C41A" />
+          </view>
         </view>
         <view v-if="couponDiscount > 0" class="row-between fee-total coupon-saving"><text>优惠减免</text><text>- {{ formatMoney(couponDiscount) }}</text></view>
         <view class="row-between fee-total">
@@ -451,6 +492,45 @@ onBeforeUnmount(() => { if (typeof window !== 'undefined') window.removeEventLis
         {{ submitting ? '提交中...' : '确认发布任务' }}
       </view>
     </view>
+    <view v-if="couponSheetOpen" class="coupon-sheet-mask" @tap.self="couponSheetOpen = false">
+      <view class="coupon-sheet" @tap.stop>
+        <view class="coupon-sheet-head">
+          <view>
+            <text class="coupon-sheet-title">选择优惠券</text>
+            <text class="coupon-sheet-desc">本次配送费 {{ formatMoney(feePreview) }}</text>
+          </view>
+          <view class="coupon-sheet-close" @tap="couponSheetOpen = false">
+            <uni-icons type="closeempty" size="20" color="#66736b" />
+          </view>
+        </view>
+        <scroll-view scroll-y class="coupon-options">
+          <view class="coupon-option no-coupon" :class="{ selected: !selectedCouponId }" @tap="selectCoupon(null)">
+            <view>
+              <text class="coupon-option-name">不使用优惠券</text>
+              <text class="coupon-option-rule">按原价支付配送费</text>
+            </view>
+            <uni-icons v-if="!selectedCouponId" type="checkmarkempty" size="22" color="#52C41A" />
+          </view>
+          <view v-if="couponLoading && !availableCoupons.length" class="coupon-state">正在查询可用优惠券...</view>
+          <view v-else-if="!availableCoupons.length" class="coupon-state">当前金额暂无可用优惠券</view>
+          <view
+            v-for="item in availableCoupons"
+            :key="item.id"
+            class="coupon-option"
+            :class="{ selected: selectedCouponId === item.id }"
+            @tap="selectCoupon(item)"
+          >
+            <view class="coupon-option-value">{{ item.coupon.type === 'CASH' ? `¥${Number(item.coupon.value).toFixed(2)}` : `减${Number(item.coupon.value)}%` }}</view>
+            <view class="coupon-option-copy">
+              <text class="coupon-option-name">{{ item.coupon.name }}</text>
+              <text class="coupon-option-rule">本单可省 ¥{{ discountFor(item).toFixed(2) }} · {{ Number(item.coupon.min_order_amount) > 0 ? `满 ¥${Number(item.coupon.min_order_amount).toFixed(2)} 可用` : '无门槛' }}</text>
+              <text class="coupon-option-date">有效期至 {{ new Date(item.expired_at).toLocaleDateString('zh-CN') }}</text>
+            </view>
+            <uni-icons v-if="selectedCouponId === item.id" type="checkmarkempty" size="22" color="#52C41A" />
+          </view>
+        </scroll-view>
+      </view>
+    </view>
     <!-- #ifdef H5 -->
     <AppTabBar current="publish" :unread-message-count="unreadCount" />
     <!-- #endif -->
@@ -459,6 +539,8 @@ onBeforeUnmount(() => { if (typeof window !== 'undefined') window.removeEventLis
 
 <style lang="scss" scoped>
 .form-section {
+  width: 100%;
+  min-width: 0;
   margin-top: 24rpx;
   padding: 24rpx;
   border: 2rpx solid #e5e6eb;
@@ -467,6 +549,8 @@ onBeforeUnmount(() => { if (typeof window !== 'undefined') window.removeEventLis
 }
 
 .form-section-title { color: #1d2129; font-size: 30rpx; font-weight: 700; }
+.publish-page,.publish-page>.card{width:100%;min-width:0;overflow-x:hidden}
+.picker-like{min-width:0;min-height:84rpx;line-height:1.45;overflow-wrap:anywhere;white-space:normal}
 .swap-button { width: 240rpx; height: 68rpx; margin: 20rpx auto; border-radius: 999rpx; background: #edf8e9; color: #389e0d; font-size: 24rpx; }
 .location-map { width: 100%; height: 360rpx; overflow: hidden; border-radius: 18rpx; }
 .map-summary { display: flex; flex-direction: column; gap: 6rpx; margin-top: 12rpx; color: #86909c; font-size: 22rpx; }
@@ -539,8 +623,24 @@ onBeforeUnmount(() => { if (typeof window !== 'undefined') window.removeEventLis
 .fee-total {
   margin-top: 18rpx;
 }
-.coupon-picker { color: #389e0d; font-size: 24rpx; }
+.coupon-entry{display:flex;min-width:0;max-width:68%;align-items:center;justify-content:flex-end;gap:8rpx;color:#389e0d;font-size:24rpx}
+.coupon-entry text{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .coupon-saving { color: #389e0d; }
+.coupon-sheet-mask{position:fixed;z-index:9998;inset:0;display:flex;align-items:flex-end;background:rgba(27,47,34,.42);backdrop-filter:blur(10rpx)}
+.coupon-sheet{width:100%;max-height:76vh;padding:30rpx 24rpx calc(30rpx + env(safe-area-inset-bottom));overflow:hidden;border-radius:28rpx 28rpx 0 0;background:#f6f9f3;box-sizing:border-box;animation:sheet-in 200ms ease-out}
+.coupon-sheet-head{display:flex;padding:0 6rpx 22rpx;align-items:center;justify-content:space-between}
+.coupon-sheet-title,.coupon-sheet-desc{display:block}.coupon-sheet-title{color:#293630;font-size:32rpx;font-weight:800}.coupon-sheet-desc{margin-top:6rpx;color:#738078;font-size:22rpx}
+.coupon-sheet-close{display:flex;width:64rpx;height:64rpx;align-items:center;justify-content:center;border-radius:50%;background:#eaf2e6}
+.coupon-options{display:flex;max-height:60vh;overflow-y:auto;flex-direction:column;gap:16rpx}
+.coupon-option{display:grid;min-height:128rpx;padding:22rpx;grid-template-columns:120rpx minmax(0,1fr) 38rpx;align-items:center;gap:18rpx;border:2rpx solid #dfe9dc;border-radius:16rpx;background:#fff;box-sizing:border-box}
+.coupon-option.selected{border-color:#73d13d;background:#f6ffed}
+.coupon-option.no-coupon{grid-template-columns:minmax(0,1fr) 38rpx;min-height:104rpx}
+.coupon-option-value{color:#389e0d;font-size:31rpx;font-weight:800;text-align:center}
+.coupon-option-copy{display:flex;min-width:0;flex-direction:column;gap:7rpx}
+.coupon-option-name{overflow:hidden;color:#293630;font-size:27rpx;font-weight:700;text-overflow:ellipsis;white-space:nowrap}
+.coupon-option-rule,.coupon-option-date{color:#748078;font-size:21rpx}
+.coupon-state{padding:50rpx 20rpx;color:#7b877f;font-size:24rpx;text-align:center}
+@keyframes sheet-in{from{opacity:0;transform:translateY(28rpx)}to{opacity:1;transform:translateY(0)}}
 
 .submit-btn {
   margin-top: 28rpx;

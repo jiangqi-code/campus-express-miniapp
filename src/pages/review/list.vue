@@ -104,8 +104,9 @@
               v-for="(img, idx) in item.images"
               :key="idx"
               class="review-image"
-              :src="toAbsoluteFileUrl(img)"
+              :src="toThumbnailFileUrl(img)"
               mode="aspectFill"
+              lazy-load
               @tap="previewImages(item.images, idx)"
             />
           </view>
@@ -125,7 +126,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { formatDateTime, toAbsoluteFileUrl } from '@/utils/format'
+import { formatDateTime, toAbsoluteFileUrl, toThumbnailFileUrl } from '@/utils/format'
 import { http } from '@/utils/request'
 import { useAuthStore } from '@/stores/auth'
 

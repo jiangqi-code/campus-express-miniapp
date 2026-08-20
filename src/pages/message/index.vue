@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 import { useAuthStore } from '@/stores/auth'
 import { useMessageStore } from '@/stores/message'
-import { formatMessageTime } from '@/utils/format'
+import { formatMessageTime, toAbsoluteFileUrl } from '@/utils/format'
 import AppTabBar from '@/components/AppTabBar.vue'
 import type { MessageItem } from '@/types/models'
 
@@ -144,9 +144,10 @@ onLoad(async () => {
           <view class="message-avatar">
             <image
               v-if="item.sender_avatar"
-              :src="item.sender_avatar"
+              :src="toAbsoluteFileUrl(item.sender_avatar)"
               class="avatar-image"
               mode="aspectFill"
+              lazy-load
             />
             <view v-else class="avatar-placeholder">{{ getInitial(item.sender_name) }}</view>
             <view v-if="!item.is_read" class="unread-dot">新</view>
