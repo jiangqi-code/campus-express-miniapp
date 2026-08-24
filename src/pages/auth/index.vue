@@ -45,6 +45,11 @@ function goHomeByRole() {
   uni.reLaunch({ url: '/pages/index/index' })
 }
 
+function onWelcomeCouponClaimed(id: string) {
+  welcomeCoupons.value = welcomeCoupons.value.filter((item) => item.id !== id)
+  if (!welcomeCoupons.value.length) setTimeout(goHomeByRole, 450)
+}
+
 function validateLogin() {
   const account = loginForm.account.trim()
   errors.account = !account
@@ -235,7 +240,7 @@ async function onRegister() {
         </view>
       </template>
     </view>
-    <CouponWelcomeModal v-if="welcomeCoupons.length" :items="welcomeCoupons" @close="goHomeByRole" @claimed="()=>uni.reLaunch({url:'/pages/coupon/index'})" />
+    <CouponWelcomeModal v-if="welcomeCoupons.length" :items="welcomeCoupons" @close="goHomeByRole" @claimed="onWelcomeCouponClaimed" />
   </view>
 </template>
 

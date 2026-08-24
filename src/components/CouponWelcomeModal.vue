@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { http } from '@/utils/request'
 const props=defineProps<{items:any[]}>(),emit=defineEmits<{close:[];claimed:[string]}>()
 const current=ref(0),claiming=ref(false),claimed=ref(new Set<string>()),mascot='/static/task-hall-icons/mascot.svg'
 const row=computed(()=>props.items[current.value])
 const valueText=(item:any)=>item?.coupon?.type==='CASH'?`¥${Number(item.coupon.value).toFixed(0)}`:`减${Number(item?.coupon?.value||0)}%`
 const condition=(item:any)=>Number(item?.coupon?.min_order_amount)>0?`满¥${Number(item.coupon.min_order_amount).toFixed(2)}可用`:'无门槛使用'
+watch(()=>props.items.length,length=>{if(current.value>=length)current.value=Math.max(0,length-1)})
 async function claim(){if(!row.value||claiming.value||claimed.value.has(row.value.id))return;claiming.value=true;try{await http.post('/coupons/claim',{userCouponId:row.value.id});claimed.value.add(row.value.id);emit('claimed',row.value.id);uni.showToast({title:'领取成功',icon:'success'})}catch(e:any){uni.showToast({title:e?.message||'领取失败',icon:'none'})}finally{claiming.value=false}}
 </script>
 <template><view class="mask" @tap.self="emit('close')"><view class="modal"><view class="close" aria-label="关闭" @tap="emit('close')"><uni-icons type="closeempty" size="22" color="#6b776d"/></view><image class="mascot" :src="mascot" mode="aspectFit"/><text class="eyebrow">校园跑腿送你一份小惊喜</text><swiper class="swiper" :current="current" @change="current=$event.detail.current"><swiper-item v-for="item in items" :key="item.id"><view class="slide"><text class="value">{{valueText(item)}}</text><text class="name">{{item.coupon.name}}</text><text class="condition">{{condition(item)}}</text><text class="date">领取后有效至 {{new Date(item.expired_at).toLocaleDateString('zh-CN')}}</text></view></swiper-item></swiper><view v-if="items.length>1" class="dots"><view v-for="(_,i) in items" :key="i" :class="{active:i===current}"/></view><button class="claim" :disabled="claiming||claimed.has(row?.id)" @tap="claim">{{claimed.has(row?.id)?'已领取':claiming?'领取中...':'立即领取'}}</button></view></view></template>
