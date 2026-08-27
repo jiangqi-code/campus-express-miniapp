@@ -20,6 +20,12 @@
     { "path": "pages/review/index", "style": { "navigationBarTitleText": "评价订单" } },
     { "path": "pages/review/list", "style": { "navigationBarTitleText": "我的评价", "enablePullDownRefresh": true } },
     { "path": "pages/earnings/index", "style": { "navigationBarTitleText": "收益中心", "enablePullDownRefresh": true } }
+    ,{ "path": "pages/food/index", "style": { "navigationBarTitleText": "食堂点餐", "enablePullDownRefresh": true } }
+    ,{ "path": "pages/food/menu", "style": { "navigationBarTitleText": "商家菜单" } }
+    ,{ "path": "pages/food/checkout", "style": { "navigationBarTitleText": "确认订单" } }
+    ,{ "path": "pages/food/orders", "style": { "navigationBarTitleText": "外卖订单", "enablePullDownRefresh": true } }
+    ,{ "path": "pages/food/detail", "style": { "navigationBarTitleText": "订单详情", "enablePullDownRefresh": true } }
+    ,{ "path": "pages/food/runner", "style": { "navigationBarTitleText": "外卖配送", "enablePullDownRefresh": true } }
   ],
   "tabBar": {
     "custom": true,

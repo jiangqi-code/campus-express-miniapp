@@ -119,7 +119,7 @@ function onCouponClaimed(id:string){const index=couponNotices.value.findIndex(v=
 
 const services = [
   { title: '取快递', desc: '代取件寄件', icon: '/task-hall-icons/bicycle.svg', tone: 'mint', path: '/pages/task/publish?type=快递' },
-  { title: '买餐饮', desc: '食堂外卖代购', icon: '/task-hall-icons/mascot.svg', tone: 'orange', path: '/pages/task/publish?type=餐饮' },
+  { title: '食堂点餐', desc: '商家菜单下单', icon: '/task-hall-icons/mascot.svg', tone: 'orange', path: '/pages/food/index' },
   { title: '送文件', desc: '教务资料代跑', icon: '/task-hall-icons/note.svg', tone: 'blue', path: '/pages/task/publish?type=文件' },
   { title: '数码维修', desc: '校园软硬件修', icon: '/task-hall-icons/warning.svg', tone: 'violet', path: '/pages/task/publish?type=维修' },
   { title: '其他代办', desc: '各种跑腿需求', icon: '/task-hall-icons/location.svg', tone: 'yellow', path: '/pages/task/publish?type=其他' },
@@ -130,6 +130,7 @@ const tools = [
   { label: '消息中心', icon: '/task-hall-icons/warning.svg', path: '/pages/message/index' },
   { label: '个人中心', icon: '/task-hall-icons/location.svg', path: '/pages/profile/index' },
   { label: '邀请好友', icon: '/task-hall-icons/bicycle.svg', path: '/pages/profile/index' },
+  { label: '外卖订单', icon: '/task-hall-icons/note.svg', path: '/pages/food/orders' },
 ]
 
 const tabPaths = new Set(['/pages/index/index', '/pages/task/hall', '/pages/task/publish', '/pages/message/index', '/pages/profile/index'])

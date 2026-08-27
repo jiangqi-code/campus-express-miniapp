@@ -22,6 +22,8 @@ const menus = [
   { label: '跑腿员申请', desc: '提交身份资料并查看审核状态', icon: 'auth', url: '/pages/runner/apply' },
   { label: '我发布的订单', desc: '', icon: 'paperplane', url: '/pages/order/published' },
   { label: '我接单的订单', desc: '', icon: 'navigate', url: '/pages/order/taken' },
+  { label: '我的外卖订单', desc: '查看点餐配送进度', icon: 'list', url: '/pages/food/orders' },
+  { label: '外卖配送', desc: '跑腿员接取食堂配送单', icon: 'map', url: '/pages/food/runner' },
   { label: '消息中心', desc: '', icon: 'chat', url: '/pages/message/index' },
   { label: '评价列表', desc: '', icon: 'star', url: '/pages/review/list' },
 ]
