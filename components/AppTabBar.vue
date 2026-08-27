@@ -54,6 +54,18 @@ const tabs = computed<TabItem[]>(() => [
     pagePath: '/pages/task/hall',
   },
   {
+    key: 'plaza',
+    label: '信息广场',
+    icon: '◉',
+    pagePath: '/pages/forum/plaza',
+  },
+  {
+    key: 'food',
+    label: '校园外卖',
+    icon: '◒',
+    pagePath: '/pages/food/index',
+  },
+  {
     key: 'order',
     label: '订单',
     icon: '📋',

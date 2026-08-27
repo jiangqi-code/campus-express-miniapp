@@ -462,6 +462,13 @@ onLoad(async () => {
           </view>
           <text class="muted">›</text>
         </view>
+        <view class="menu-item" @tap="goPage('/pages/membership/index')">
+          <view class="row gap-16">
+            <text class="menu-icon">◆</text>
+            <text class="menu-text">会员中心 / 邀请好友</text>
+          </view>
+          <text class="muted">›</text>
+        </view>
         <view class="menu-item menu-item-last" @tap="goPage('/pages/review/index')">
           <view class="row gap-16">
             <text class="menu-icon">⭐</text>

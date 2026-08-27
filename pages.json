@@ -15,6 +15,53 @@
       }
     },
     {
+      "path": "pages/forum/plaza",
+      "style": {
+        "navigationBarTitleText": "信息发布广场",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/forum/publish",
+      "style": {
+        "navigationBarTitleText": "发布信息"
+      }
+    },
+    {
+      "path": "pages/forum/detail",
+      "style": {
+        "navigationBarTitleText": "信息详情",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/food/index",
+      "style": {
+        "navigationBarTitleText": "校园外卖",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/food/menu",
+      "style": {
+        "navigationBarTitleText": "商家菜单"
+      }
+    },
+    {
+      "path": "pages/food/orders",
+      "style": {
+        "navigationBarTitleText": "外卖订单",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/membership/index",
+      "style": {
+        "navigationBarTitleText": "会员中心",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
       "path": "pages/order/index",
       "style": {
         "navigationBarTitleText": "我的订单",
