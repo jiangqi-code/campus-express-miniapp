@@ -26,6 +26,9 @@
     ,{ "path": "pages/food/orders", "style": { "navigationBarTitleText": "外卖订单", "enablePullDownRefresh": true } }
     ,{ "path": "pages/food/detail", "style": { "navigationBarTitleText": "订单详情", "enablePullDownRefresh": true } }
     ,{ "path": "pages/food/runner", "style": { "navigationBarTitleText": "外卖配送", "enablePullDownRefresh": true } }
+    ,{ "path": "pages/forum/index", "style": { "navigationBarTitleText": "校园广场", "enablePullDownRefresh": true } }
+    ,{ "path": "pages/forum/publish", "style": { "navigationBarTitleText": "发布信息" } }
+    ,{ "path": "pages/forum/detail", "style": { "navigationBarTitleText": "广场详情", "enablePullDownRefresh": true } }
   ],
   "tabBar": {
     "custom": true,

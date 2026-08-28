@@ -131,6 +131,7 @@ const tools = [
   { label: '个人中心', icon: '/task-hall-icons/location.svg', path: '/pages/profile/index' },
   { label: '邀请好友', icon: '/task-hall-icons/bicycle.svg', path: '/pages/profile/index' },
   { label: '外卖订单', icon: '/task-hall-icons/note.svg', path: '/pages/food/orders' },
+  { label: '校园广场', icon: '/task-hall-icons/mascot.svg', path: '/pages/forum/index' },
 ]
 
 const tabPaths = new Set(['/pages/index/index', '/pages/task/hall', '/pages/task/publish', '/pages/message/index', '/pages/profile/index'])
