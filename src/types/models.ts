@@ -21,6 +21,35 @@ export interface UserProfile {
   walletBalance?: number
 }
 
+export interface RunnerPeriodOverview {
+  orderCount: number
+  income: number
+}
+
+export interface RunnerDashboard {
+  runner: {
+    avatar: string
+    nickname: string
+    totalOrders: number
+    positiveReviewRate: number
+    reviewCount: number
+    creditScore: number
+    level: string
+    reviewTags: Array<{ name: string; count: number }>
+    recentReviews: Array<{
+      id: number
+      rating: number
+      tags: string[]
+      content: string
+      createdAt: string
+    }>
+  }
+  overview: {
+    today: RunnerPeriodOverview
+    week: RunnerPeriodOverview
+  }
+}
+
 export interface TaskItem {
   id: string
   pickup_address?: string

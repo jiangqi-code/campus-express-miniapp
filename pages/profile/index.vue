@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import { onLoad, onPullDownRefresh } from '@dcloudio/uni-app'
 import { useAuthStore } from '@/stores/auth'
@@ -6,6 +6,8 @@ import { useMessageStore } from '@/stores/message'
 import AppTabBar from '@/components/AppTabBar.vue'
 import { formatMoney, toAbsoluteFileUrl } from '@/utils/format'
 import { http, uploadImage } from '@/utils/request'
+import { API_BASE_URL, STORAGE_KEYS } from '@/config'
+import { getStorage } from '@/utils/storage'
 import type { RunnerAuthStatus, UserProfile } from '@/types/models'
 
 const authStore = useAuthStore()
@@ -43,6 +45,7 @@ const firstLetter = computed(() => {
 
 const canSwitchRole = computed(() => {
   if (authStore.role === 'admin') return false
+  if (authStore.role === 'merchant') return false
   if (authStore.role === 'runner') return true
   return authStore.runnerAuthStatus === 'APPROVED'
 })
@@ -69,14 +72,14 @@ const runnerBadgeClass = computed(() => {
 })
 
 const runnerStatusLabel = computed(() => {
-  if (authStore.role === 'runner') return '已是跑腿员'
+  if (authStore.role === 'runner') return '宸叉槸璺戣吙鍛?
   const map: Record<RunnerAuthStatus, string> = {
-    NONE: '未申请',
-    PENDING: '审核中',
-    APPROVED: '审核通过',
-    REJECTED: '审核拒绝',
+    NONE: '鏈敵璇?,
+    PENDING: '瀹℃牳涓?,
+    APPROVED: '瀹℃牳閫氳繃',
+    REJECTED: '瀹℃牳鎷掔粷',
   }
-  return map[authStore.runnerAuthStatus] || '未申请'
+  return map[authStore.runnerAuthStatus] || '鏈敵璇?
 })
 
 const showApplyButton = computed(() => {
@@ -92,7 +95,7 @@ const fetchProfileWithFallback = async () => {
     const user = res?.data?.user ?? res?.user ?? res?.data ?? res ?? {}
     const profile: UserProfile = {
       id: String(user?.id ?? user?.user_id ?? authStore.profile?.id ?? ''),
-      nickname: String(user?.nickname ?? authStore.profile?.nickname ?? '同学'),
+      nickname: String(user?.nickname ?? authStore.profile?.nickname ?? '鍚屽'),
       phone: String(user?.phone ?? authStore.profile?.phone ?? ''),
       studentId: String(user?.student_id ?? user?.studentId ?? authStore.profile?.studentId ?? ''),
       avatar: String(user?.avatar ?? user?.avatar_url ?? authStore.profile?.avatar ?? ''),
@@ -155,7 +158,7 @@ const fetchPageData = async () => {
       fetchRunnerAuthWithFallback(),
     ])
   } catch (error: any) {
-    uni.showToast({ title: error.message || '个人信息加载失败', icon: 'none' })
+    uni.showToast({ title: error.message || '涓汉淇℃伅鍔犺浇澶辫触', icon: 'none' })
   } finally {
     loading.value = false
     uni.stopPullDownRefresh()
@@ -175,7 +178,7 @@ const closeEdit = () => {
 
 const saveProfile = async () => {
   if (!editForm.nickname.trim()) {
-    uni.showToast({ title: '请输入昵称', icon: 'none' })
+    uni.showToast({ title: '璇疯緭鍏ユ樀绉?, icon: 'none' })
     return
   }
   submittingEdit.value = true
@@ -195,11 +198,11 @@ const saveProfile = async () => {
       }
       await http.put('/user/profile', payload2)
     }
-    uni.showToast({ title: '保存成功', icon: 'success' })
+    uni.showToast({ title: '淇濆瓨鎴愬姛', icon: 'success' })
     editing.value = false
     await fetchProfileWithFallback()
   } catch (error: any) {
-    uni.showToast({ title: error.message || '保存失败', icon: 'none' })
+    uni.showToast({ title: error.message || '淇濆瓨澶辫触', icon: 'none' })
   } finally {
     submittingEdit.value = false
   }
@@ -210,12 +213,33 @@ const chooseAvatar = () => {
     count: 1,
     success: async (res) => {
       try {
-        const avatar = await uploadImage(res.tempFilePaths[0], 'file')
-        await http.post('/user/avatar', { avatar })
-        uni.showToast({ title: '头像更新成功', icon: 'success' })
+        const token = await getStorage<string>(STORAGE_KEYS.token, '')
+        const filePath = res.tempFilePaths[0]
+        await new Promise<void>((resolve, reject) => {
+          uni.uploadFile({
+            url: `${API_BASE_URL}/user/avatar`,
+            filePath,
+            name: 'avatar',
+            header: token ? { Authorization: /^Bearer\s/i.test(token) ? token : `Bearer ${token}` } : undefined,
+            success: (uploadRes) => {
+              try {
+                const status = uploadRes.statusCode || 0
+                let data: any = uploadRes.data || ''
+                try { data = typeof data === 'string' && data ? JSON.parse(data) : (data || {}) } catch { data = {} }
+                if (status < 200 || status >= 300) {
+                  reject(new Error(data?.error || data?.message || `涓婁紶澶辫触(${status})`))
+                  return
+                }
+                resolve()
+              } catch (e) { reject(e) }
+            },
+            fail: (err) => reject(new Error(err.errMsg || '涓婁紶澶辫触')),
+          })
+        })
+        uni.showToast({ title: '澶村儚鏇存柊鎴愬姛', icon: 'success' })
         await fetchProfileWithFallback()
       } catch (error: any) {
-        uni.showToast({ title: error.message || '头像上传失败', icon: 'none' })
+        uni.showToast({ title: error.message || '澶村儚涓婁紶澶辫触', icon: 'none' })
       }
     },
   })
@@ -233,17 +257,17 @@ const closeRecharge = () => {
 const confirmRecharge = async () => {
   const amount = Number(rechargeAmount.value)
   if (!amount || amount <= 0) {
-    uni.showToast({ title: '请输入大于 0 的金额', icon: 'none' })
+    uni.showToast({ title: '璇疯緭鍏ュぇ浜?0 鐨勯噾棰?, icon: 'none' })
     return
   }
   submittingRecharge.value = true
   try {
     await http.post('/wallet/recharge', { amount })
-    uni.showToast({ title: '充值成功', icon: 'success' })
+    uni.showToast({ title: '鍏呭€兼垚鍔?, icon: 'success' })
     rechargeVisible.value = false
     await fetchWallet()
   } catch (error: any) {
-    uni.showToast({ title: error.message || '充值失败', icon: 'none' })
+    uni.showToast({ title: error.message || '鍏呭€煎け璐?, icon: 'none' })
   } finally {
     submittingRecharge.value = false
   }
@@ -251,7 +275,7 @@ const confirmRecharge = async () => {
 
 const switchRole = async () => {
   if (authStore.role === 'admin') {
-    uni.showToast({ title: '管理员账号不允许切换', icon: 'none' })
+    uni.showToast({ title: '绠＄悊鍛樿处鍙蜂笉鍏佽鍒囨崲', icon: 'none' })
     return
   }
   try {
@@ -260,10 +284,10 @@ const switchRole = async () => {
     authStore.role = nextRole.toLowerCase() as 'user' | 'runner'
     if (authStore.profile) authStore.profile.role = authStore.role
     await (authStore as any).persist?.()
-    uni.showToast({ title: '身份已切换', icon: 'success' })
+    uni.showToast({ title: '韬唤宸插垏鎹?, icon: 'success' })
     await fetchProfileWithFallback()
   } catch (error: any) {
-    uni.showToast({ title: error.message || '切换失败', icon: 'none' })
+    uni.showToast({ title: error.message || '鍒囨崲澶辫触', icon: 'none' })
   }
 }
 
@@ -281,15 +305,15 @@ const closeApply = () => {
 
 const submitApply = async () => {
   if (!applyForm.student_id.trim()) {
-    uni.showToast({ title: '请输入学号', icon: 'none' })
+    uni.showToast({ title: '璇疯緭鍏ュ鍙?, icon: 'none' })
     return
   }
   if (!applyForm.phone.trim()) {
-    uni.showToast({ title: '请输入手机号', icon: 'none' })
+    uni.showToast({ title: '璇疯緭鍏ユ墜鏈哄彿', icon: 'none' })
     return
   }
   if (!applyForm.real_name.trim()) {
-    uni.showToast({ title: '请输入真实姓名', icon: 'none' })
+    uni.showToast({ title: '璇疯緭鍏ョ湡瀹炲鍚?, icon: 'none' })
     return
   }
   submittingApply.value = true
@@ -298,13 +322,13 @@ const submitApply = async () => {
       student_id: applyForm.student_id.trim(),
       phone: applyForm.phone.trim(),
       real_name: applyForm.real_name.trim(),
-      reason: applyForm.reason.trim() || '小程序端申请跑腿员',
+      reason: applyForm.reason.trim() || '灏忕▼搴忕鐢宠璺戣吙鍛?,
     })
-    uni.showToast({ title: '申请已提交', icon: 'success' })
+    uni.showToast({ title: '鐢宠宸叉彁浜?, icon: 'success' })
     applyVisible.value = false
     await fetchRunnerAuthWithFallback()
   } catch (error: any) {
-    uni.showToast({ title: error.message || '申请失败', icon: 'none' })
+    uni.showToast({ title: error.message || '鐢宠澶辫触', icon: 'none' })
   } finally {
     submittingApply.value = false
   }
@@ -316,8 +340,8 @@ const goPage = (url: string) => {
 
 const logout = async () => {
   uni.showModal({
-    title: '退出登录',
-    content: '确定要退出当前账号吗？',
+    title: '閫€鍑虹櫥褰?,
+    content: '纭畾瑕侀€€鍑哄綋鍓嶈处鍙峰悧锛?,
     success: async (res) => {
       if (!res.confirm) return
       await authStore.logout()
@@ -342,7 +366,7 @@ onLoad(async () => {
 
 <template>
   <view class="page-shell">
-    <view v-if="loading" class="empty-box">加载中...</view>
+    <view v-if="loading" class="empty-box">鍔犺浇涓?..</view>
     <template v-else>
       <view class="card profile-card">
         <view class="row gap-20 profile-header">
@@ -357,60 +381,60 @@ onLoad(async () => {
               {{ firstLetter }}
             </view>
             <view class="avatar-camera">
-              <text class="avatar-camera-icon">📷</text>
+              <text class="avatar-camera-icon">馃摲</text>
             </view>
           </view>
 
           <view class="user-info">
-            <view class="section-title">{{ authStore.profile?.nickname || '同学' }}</view>
-            <view class="section-desc">ID：{{ authStore.profile?.id || '-' }}</view>
-            <view class="section-desc">手机号：{{ authStore.profile?.phone || '-' }}</view>
-            <view class="section-desc">学号：{{ authStore.profile?.studentId || '-' }}</view>
+            <view class="section-title">{{ authStore.profile?.nickname || '鍚屽' }}</view>
+            <view class="section-desc">ID锛歿{ authStore.profile?.id || '-' }}</view>
+            <view class="section-desc">鎵嬫満鍙凤細{{ authStore.profile?.phone || '-' }}</view>
+            <view class="section-desc">瀛﹀彿锛歿{ authStore.profile?.studentId || '-' }}</view>
             <view class="row gap-8 info-tags">
-              <view class="badge badge-primary">{{ authStore.role === 'runner' ? '跑腿员' : authStore.role === 'admin' ? '管理员' : '普通用户' }}</view>
-              <view class="badge badge-default">信用分 {{ authStore.profile?.creditScore || 0 }}</view>
+              <view class="badge badge-primary">{{ authStore.role === 'runner' ? '璺戣吙鍛? : authStore.role === 'admin' ? '绠＄悊鍛? : '鏅€氱敤鎴? }}</view>
+              <view class="badge badge-default">淇＄敤鍒?{{ authStore.profile?.creditScore || 0 }}</view>
             </view>
           </view>
         </view>
 
         <view class="edit-toggle-row" @tap="openEdit">
-          <text class="edit-toggle-text">{{ editing ? '收起编辑' : '编辑资料' }}</text>
-          <text class="muted">{{ editing ? '▴' : '▾' }}</text>
+          <text class="edit-toggle-text">{{ editing ? '鏀惰捣缂栬緫' : '缂栬緫璧勬枡' }}</text>
+          <text class="muted">{{ editing ? '鈻? : '鈻? }}</text>
         </view>
 
         <view v-if="editing" class="edit-section">
           <view class="field-group">
-            <view class="field-label">昵称 <text class="required">*</text></view>
+            <view class="field-label">鏄电О <text class="required">*</text></view>
             <input
               class="input"
               v-model="editForm.nickname"
-              placeholder="请输入昵称"
+              placeholder="璇疯緭鍏ユ樀绉?
               maxlength="20"
             />
           </view>
           <view class="field-group">
-            <view class="field-label">手机号</view>
+            <view class="field-label">鎵嬫満鍙?/view>
             <input
               class="input"
               v-model="editForm.phone"
-              placeholder="请输入手机号"
+              placeholder="璇疯緭鍏ユ墜鏈哄彿"
               type="number"
               maxlength="11"
             />
           </view>
           <view class="field-group">
-            <view class="field-label">学号</view>
+            <view class="field-label">瀛﹀彿</view>
             <input
               class="input"
               v-model="editForm.studentId"
-              placeholder="请输入学号"
+              placeholder="璇疯緭鍏ュ鍙?
               maxlength="30"
             />
           </view>
           <view class="row gap-16 edit-actions">
-            <view class="btn-ghost flex-1" @tap="closeEdit">取消</view>
+            <view class="btn-ghost flex-1" @tap="closeEdit">鍙栨秷</view>
             <view class="btn-primary flex-1" :class="{ disabled: submittingEdit }" @tap="saveProfile">
-              {{ submittingEdit ? '保存中...' : '保存修改' }}
+              {{ submittingEdit ? '淇濆瓨涓?..' : '淇濆瓨淇敼' }}
             </view>
           </view>
         </view>
@@ -418,16 +442,16 @@ onLoad(async () => {
 
       <view class="card wallet-card">
         <view class="row-between wallet-header">
-          <view class="section-title">我的钱包</view>
-          <view class="btn-ghost btn-small" @tap="openRecharge">充值</view>
+          <view class="section-title">鎴戠殑閽卞寘</view>
+          <view class="btn-ghost btn-small" @tap="openRecharge">鍏呭€?/view>
         </view>
         <view class="grid-2 wallet-grid">
           <view class="wallet-item">
-            <view class="muted">可用余额</view>
+            <view class="muted">鍙敤浣欓</view>
             <view class="wallet-value balance">{{ formatMoney(wallet.balance) }}</view>
           </view>
           <view class="wallet-item">
-            <view class="muted">冻结金额</view>
+            <view class="muted">鍐荤粨閲戦</view>
             <view class="wallet-value frozen">{{ formatMoney(wallet.frozen) }}</view>
           </view>
         </view>
@@ -436,84 +460,84 @@ onLoad(async () => {
       <view class="card menu-card">
         <view class="menu-item" @tap="goPage('/pages/order/published')">
           <view class="row gap-16">
-            <text class="menu-icon">📦</text>
-            <text class="menu-text">我发布的订单</text>
+            <text class="menu-icon">馃摝</text>
+            <text class="menu-text">鎴戝彂甯冪殑璁㈠崟</text>
           </view>
-          <text class="muted">›</text>
+          <text class="muted">鈥?/text>
         </view>
         <view class="menu-item" @tap="goPage('/pages/order/taken')">
           <view class="row gap-16">
-            <text class="menu-icon">🛵</text>
-            <text class="menu-text">我接单的订单</text>
+            <text class="menu-icon">馃浀</text>
+            <text class="menu-text">鎴戞帴鍗曠殑璁㈠崟</text>
           </view>
-          <text class="muted">›</text>
+          <text class="muted">鈥?/text>
         </view>
         <view class="menu-item" @tap="goPage('/pages/earnings/index')">
           <view class="row gap-16">
-            <text class="menu-icon">💰</text>
-            <text class="menu-text">收益 / 钱包 / 提现</text>
+            <text class="menu-icon">馃挵</text>
+            <text class="menu-text">鏀剁泭 / 閽卞寘 / 鎻愮幇</text>
           </view>
-          <text class="muted">›</text>
+          <text class="muted">鈥?/text>
         </view>
         <view class="menu-item" @tap="goPage('/pages/message/index')">
           <view class="row gap-16">
-            <text class="menu-icon">🔔</text>
-            <text class="menu-text">消息中心</text>
+            <text class="menu-icon">馃敂</text>
+            <text class="menu-text">娑堟伅涓績</text>
           </view>
-          <text class="muted">›</text>
+          <text class="muted">鈥?/text>
         </view>
         <view class="menu-item" @tap="goPage('/pages/membership/index')">
           <view class="row gap-16">
-            <text class="menu-icon">◆</text>
-            <text class="menu-text">会员中心 / 邀请好友</text>
+            <text class="menu-icon">鈼?/text>
+            <text class="menu-text">浼氬憳涓績 / 閭€璇峰ソ鍙?/text>
           </view>
-          <text class="muted">›</text>
+          <text class="muted">鈥?/text>
         </view>
         <view class="menu-item menu-item-last" @tap="goPage('/pages/review/index')">
           <view class="row gap-16">
-            <text class="menu-icon">⭐</text>
-            <text class="menu-text">评价列表</text>
+            <text class="menu-icon">猸?/text>
+            <text class="menu-text">璇勪环鍒楄〃</text>
           </view>
-          <text class="muted">›</text>
+          <text class="muted">鈥?/text>
         </view>
       </view>
 
       <view class="card runner-card">
         <view class="row-between">
           <view>
-            <view class="section-title">跑腿员资格</view>
-            <view class="section-desc">当前状态：{{ runnerStatusLabel }}</view>
+            <view class="section-title">璺戣吙鍛樿祫鏍?/view>
+            <view class="section-desc">褰撳墠鐘舵€侊細{{ runnerStatusLabel }}</view>
           </view>
           <view class="badge" :class="runnerBadgeClass">{{ authStore.role === 'runner' ? 'RUNNER' : authStore.runnerAuthStatus }}</view>
         </view>
 
         <view v-if="canSwitchRole" class="btn-primary runner-action-btn" @tap="switchRole">
-          {{ authStore.role === 'runner' ? '切换为普通用户' : '切换为跑腿员' }}
+          {{ authStore.role === 'runner' ? '鍒囨崲涓烘櫘閫氱敤鎴? : '鍒囨崲涓鸿窇鑵垮憳' }}
         </view>
         <view v-else-if="showApplyButton" class="btn-secondary runner-action-btn" @tap="openApply">
-          {{ authStore.runnerAuthStatus === 'REJECTED' ? '重新申请跑腿员' : '申请成为跑腿员' }}
+          {{ authStore.runnerAuthStatus === 'REJECTED' ? '閲嶆柊鐢宠璺戣吙鍛? : '鐢宠鎴愪负璺戣吙鍛? }}
         </view>
         <view v-else-if="isApplyPending" class="btn-ghost runner-action-btn disabled">
-          审核中，请耐心等待
+          瀹℃牳涓紝璇疯€愬績绛夊緟
         </view>
       </view>
 
-      <view class="btn-danger logout-btn" @tap="logout">退出登录</view>
+      <view class="btn-danger logout-btn" @tap="logout">閫€鍑虹櫥褰?/view>
     </template>
 
     <view v-if="rechargeVisible" class="modal-mask" @tap="closeRecharge">
       <view class="modal-box" @tap.stop>
         <view class="modal-header">
-          <view class="section-title">钱包充值</view>
-          <view class="modal-close" @tap="closeRecharge">✕</view>
+          <view class="section-title">閽卞寘鍏呭€?/view>
+          <view class="modal-close" @tap="closeRecharge">鉁?/view>
         </view>
         <view class="modal-body">
-          <view class="field-label">充值金额</view>
+          <view class="field-label">鍏呭€奸噾棰?/view>
           <input
             class="input recharge-input"
             v-model="rechargeAmount"
             type="digit"
-            placeholder="请输入充值金额（元）"
+            placeholder="璇疯緭鍏ュ厖鍊奸噾棰濓紙鍏冿級"
           />
           <view class="row gap-8 quick-amounts">
             <view
@@ -522,14 +546,14 @@ onLoad(async () => {
               class="quick-amount"
               @tap="rechargeAmount = amt"
             >
-              ¥{{ amt }}
+              楼{{ amt }}
             </view>
           </view>
         </view>
         <view class="modal-footer">
-          <view class="btn-ghost flex-1" @tap="closeRecharge">取消</view>
+          <view class="btn-ghost flex-1" @tap="closeRecharge">鍙栨秷</view>
           <view class="btn-primary flex-1" :class="{ disabled: submittingRecharge }" @tap="confirmRecharge">
-            {{ submittingRecharge ? '充值中...' : '确认充值' }}
+            {{ submittingRecharge ? '鍏呭€间腑...' : '纭鍏呭€? }}
           </view>
         </view>
       </view>
@@ -538,31 +562,31 @@ onLoad(async () => {
     <view v-if="applyVisible" class="modal-mask" @tap="closeApply">
       <view class="modal-box" @tap.stop>
         <view class="modal-header">
-          <view class="section-title">申请跑腿员</view>
-          <view class="modal-close" @tap="closeApply">✕</view>
+          <view class="section-title">鐢宠璺戣吙鍛?/view>
+          <view class="modal-close" @tap="closeApply">鉁?/view>
         </view>
         <view class="modal-body">
           <view class="field-group">
-            <view class="field-label">学号 <text class="required">*</text></view>
-            <input class="input" v-model="applyForm.student_id" placeholder="请输入学号" maxlength="30" />
+            <view class="field-label">瀛﹀彿 <text class="required">*</text></view>
+            <input class="input" v-model="applyForm.student_id" placeholder="璇疯緭鍏ュ鍙? maxlength="30" />
           </view>
           <view class="field-group">
-            <view class="field-label">手机号 <text class="required">*</text></view>
-            <input class="input" v-model="applyForm.phone" placeholder="请输入手机号" type="number" maxlength="11" />
+            <view class="field-label">鎵嬫満鍙?<text class="required">*</text></view>
+            <input class="input" v-model="applyForm.phone" placeholder="璇疯緭鍏ユ墜鏈哄彿" type="number" maxlength="11" />
           </view>
           <view class="field-group">
-            <view class="field-label">真实姓名 <text class="required">*</text></view>
-            <input class="input" v-model="applyForm.real_name" placeholder="请输入真实姓名" maxlength="20" />
+            <view class="field-label">鐪熷疄濮撳悕 <text class="required">*</text></view>
+            <input class="input" v-model="applyForm.real_name" placeholder="璇疯緭鍏ョ湡瀹炲鍚? maxlength="20" />
           </view>
           <view class="field-group">
-            <view class="field-label">申请理由</view>
-            <textarea class="textarea" v-model="applyForm.reason" placeholder="请简单说明申请理由（选填）" maxlength="200" />
+            <view class="field-label">鐢宠鐞嗙敱</view>
+            <textarea class="textarea" v-model="applyForm.reason" placeholder="璇风畝鍗曡鏄庣敵璇风悊鐢憋紙閫夊～锛? maxlength="200" />
           </view>
         </view>
         <view class="modal-footer">
-          <view class="btn-ghost flex-1" @tap="closeApply">取消</view>
+          <view class="btn-ghost flex-1" @tap="closeApply">鍙栨秷</view>
           <view class="btn-primary flex-1" :class="{ disabled: submittingApply }" @tap="submitApply">
-            {{ submittingApply ? '提交中...' : '提交申请' }}
+            {{ submittingApply ? '鎻愪氦涓?..' : '鎻愪氦鐢宠' }}
           </view>
         </view>
       </view>

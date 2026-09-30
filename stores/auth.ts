@@ -1,4 +1,4 @@
-import { defineStore } from 'pinia'
+﻿import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { STORAGE_KEYS } from '@/config'
 import type { RunnerAuthStatus, UserProfile, UserRole } from '@/types/models'
@@ -8,6 +8,7 @@ import { getStorage, removeStorage, setStorage } from '@/utils/storage'
 function normalizeRole(value: unknown): UserRole {
   const text = String(value ?? '').trim().toLowerCase()
   if (text === 'runner') return 'runner'
+  if (text === 'merchant') return 'merchant'
   if (text === 'admin') return 'admin'
   return 'user'
 }
@@ -49,7 +50,7 @@ export const useAuthStore = defineStore('auth', () => {
     role.value = normalizeRole(user?.role ?? result?.role)
     profile.value = {
       id: String(user?.id ?? user?.user_id ?? ''),
-      nickname: String(user?.nickname ?? '同学'),
+      nickname: String(user?.nickname ?? '鍚屽'),
       phone: String(user?.phone ?? ''),
       studentId: String(user?.student_id ?? user?.studentId ?? ''),
       avatar: String(user?.avatar ?? user?.avatar_url ?? ''),
@@ -69,7 +70,7 @@ export const useAuthStore = defineStore('auth', () => {
     const user = result?.user ?? result?.data?.user ?? result?.data ?? result ?? {}
     profile.value = {
       id: String(user?.id ?? user?.user_id ?? profile.value?.id ?? ''),
-      nickname: String(user?.nickname ?? profile.value?.nickname ?? '同学'),
+      nickname: String(user?.nickname ?? profile.value?.nickname ?? '鍚屽'),
       phone: String(user?.phone ?? profile.value?.phone ?? ''),
       studentId: String(user?.student_id ?? user?.studentId ?? profile.value?.studentId ?? ''),
       avatar: String(user?.avatar ?? user?.avatar_url ?? profile.value?.avatar ?? ''),

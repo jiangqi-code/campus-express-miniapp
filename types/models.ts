@@ -1,4 +1,4 @@
-export type UserRole = 'user' | 'runner' | 'admin'
+﻿export type UserRole = 'user' | 'runner' | 'merchant' | 'admin'
 export type RunnerAuthStatus = 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED'
 
 export interface LocationPoint {
